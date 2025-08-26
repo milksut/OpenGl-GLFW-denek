@@ -15,7 +15,7 @@ const float aspect_ratio = (float)width / (float)height;
 
 float mouse_lastX = width/2, mouse_lastY = height/2;
 
-const float mouse_sensitivity = 0.1f;
+const float mouse_sensitivity = 0.3f;
 
 glm::vec3 camera_rotation(0.0f, 0.0f, 0.0f);
 glm::vec3 camera_direction = glm::vec3(0.0f, 0.0f, 0.0f);

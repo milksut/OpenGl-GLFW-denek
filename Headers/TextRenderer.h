@@ -1,5 +1,5 @@
 #pragma once
-#include "Shader.h"
+#include "Headers\Shader.h"
 #include <glad/glad.h> 
 #include <glfw/glfw3.h>
 #include <glm/glm.hpp>
@@ -9,7 +9,7 @@
 #include <fstream>
 #include <unordered_map>
 
-#include "Some_functions.h"
+#include "Headers\Some_functions.h"
 class TextRenderer
 {
 private:
@@ -72,8 +72,8 @@ public:
 		//TODO: make changable values for shader
 		shader.use();
 		shader.setVec4("delete_color", glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
-		shader.setFloat("tolerance", 0.01f);
-		shader.setVec4("background_color", glm::vec4(0.5f, 0.5f, 0.5f, 0.4f));
+		shader.setFloat("tolerance", 1.5f);
+		shader.setVec4("background_color", glm::vec4(1.0f, 1.0f, 1.0f, 0.1f));
 
 		// Load texture atlas
 		texture_atlas = load_image(texture_path, width, height, nrChannels, image_packing, false);
@@ -166,7 +166,6 @@ public:
 
 	void render_text(const std::string& text, float x, float y)
 	{
-		glDisable(GL_CULL_FACE);
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 

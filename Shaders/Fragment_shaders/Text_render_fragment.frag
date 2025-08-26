@@ -10,7 +10,11 @@ uniform float tolerance;
 
 void main()
 {
-    FragColor = texture(Texture_1, TexCoord);
-    if(FragColor.a == 0.01f || distance(FragColor.rgb, delete_color.rgb) < tolerance)
-        FragColor = background_color;
+    vec4 texColor = texture(Texture_1, TexCoord);
+    
+    float distance_rgb = distance(texColor.rgb, delete_color.rgb);
+    
+    float alpha_mask = smoothstep(0.0, tolerance, distance_rgb);
+    
+    FragColor = mix(background_color, texColor, alpha_mask);
 }

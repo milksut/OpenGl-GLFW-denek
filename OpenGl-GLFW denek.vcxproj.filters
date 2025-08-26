@@ -47,10 +47,10 @@
     <ClInclude Include="Camera_test.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="TextRenderer.h">
+    <ClInclude Include="Some_functions.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Some_functions.h">
+    <ClInclude Include="Headers\TextRenderer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
