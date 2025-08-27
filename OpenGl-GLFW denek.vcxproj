@@ -136,11 +136,11 @@
     <ClCompile Include="stb_implementation.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Camera_test.h" />
+    <ClInclude Include="Headers\Camera_test.h" />
+    <ClInclude Include="Headers\Shader.h" />
+    <ClInclude Include="Headers\Some_functions.h" />
+    <ClInclude Include="Headers\stb_image.h" />
     <ClInclude Include="Headers\TextRenderer.h" />
-    <ClInclude Include="Shader.h" />
-    <ClInclude Include="Some_functions.h" />
-    <ClInclude Include="stb_image.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Shaders\Fragment_shaders\Basic_fragment.frag" />

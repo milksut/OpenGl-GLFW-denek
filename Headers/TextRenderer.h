@@ -19,6 +19,7 @@ private:
 	int char_width, char_height;
 	float normalized_char_width, normalized_char_height;
 	int screen_width, screen_height;
+	float add_advance_per_char;
 	
 	int nrChannels, width, height;
 
@@ -58,31 +59,31 @@ private:
 		return std::stoi(str.substr(start, fin - start));
 	}
 
+	
+
 public:
+	glm::vec4 deleted_colors[8];
+	float tolerances[8];
+	glm::vec4 replace_colors[8];
+	int num_color = 0;
 
 	TextRenderer(
 		const char* texture_path, const char* char_set_path,
 		const int screen_width, const int screen_height,
 		const int char_width, const int char_height, 
 		const char* vertex_shader_path, const char* fragment_shader_path,
-		const int image_packing = 4)
+		const float add_advance_per_char = 0.0f,const int image_packing = 4)
 		: shader(vertex_shader_path, fragment_shader_path), char_width(char_width), char_height(char_height)
-		, screen_height(screen_height), screen_width(screen_width)
+		, screen_height(screen_height), screen_width(screen_width), add_advance_per_char(add_advance_per_char)
 	{
-		//TODO: make changable values for shader
-		shader.use();
-		shader.setVec4("delete_color", glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
-		shader.setFloat("tolerance", 1.5f);
-		shader.setVec4("background_color", glm::vec4(1.0f, 1.0f, 1.0f, 0.1f));
-
 		// Load texture atlas
 		texture_atlas = load_image(texture_path, width, height, nrChannels, image_packing, false);
 
 		normalized_char_width = static_cast<float>(char_width) / width;
 		normalized_char_height = static_cast<float>(char_height) / height;
 
-		pos_coords[3] = static_cast<float>(char_width) / screen_width;
-		pos_coords[6] = static_cast<float>(char_width) / screen_width;
+		pos_coords[3] = (static_cast<float>(char_width) / screen_width) + add_advance_per_char;
+		pos_coords[6] = (static_cast<float>(char_width) / screen_width) + add_advance_per_char;
 
 		pos_coords[7] = static_cast<float>(char_height) / screen_height;
 		pos_coords[10] = static_cast<float>(char_height) / screen_height;
@@ -164,7 +165,51 @@ public:
 		glDeleteTextures(1, &texture_atlas);
 	}
 
-	void render_text(const std::string& text, float x, float y)
+	int change_deleted_colors(int index_of_color, const glm::vec4& new_deleted_color, float tolerance = 0.5f, const glm::vec4& new_replace_color = glm::vec4(1.0f, 1.0f, 1.0f, 0.0f))
+	{
+		if (index_of_color < 0 || index_of_color > 7)
+			return -1;
+		if (index_of_color >= num_color)
+			index_of_color = num_color++;
+
+		deleted_colors[index_of_color] = new_deleted_color;
+		tolerances[index_of_color] = tolerance;
+		replace_colors[index_of_color] = new_replace_color;
+
+		return index_of_color;
+	}
+
+	void push_deleted_colors()
+	{
+		shader.use();
+		shader.setVec4("delete_colors", deleted_colors,num_color);
+		shader.setFloat("tolerances", tolerances, num_color);
+		shader.setVec4("replace_colors", replace_colors, num_color);
+		shader.setInt("num_colors", num_color);
+	}
+
+	void change_screen_size(int new_width, int new_height)
+	{
+		screen_width = new_width;
+		screen_height = new_height;
+		pos_coords[3] = (static_cast<float>(char_width) / screen_width) + add_advance_per_char;
+		pos_coords[6] = (static_cast<float>(char_width) / screen_width) + add_advance_per_char;
+		pos_coords[7] = static_cast<float>(char_height) / screen_height;
+		pos_coords[10] = static_cast<float>(char_height) / screen_height;
+		glBindBuffer(GL_ARRAY_BUFFER, VBO_pos);
+		glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(pos_coords), pos_coords);
+	}
+
+	void change_add_advance_per_char(float new_value)
+	{
+		add_advance_per_char = new_value;
+		pos_coords[3] = (static_cast<float>(char_width) / screen_width) + add_advance_per_char;
+		pos_coords[6] = (static_cast<float>(char_width) / screen_width) + add_advance_per_char;
+		glBindBuffer(GL_ARRAY_BUFFER, VBO_pos);
+		glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(pos_coords), pos_coords);
+	}
+
+	void render_text(const std::string& text, float starting_x, float starting_y, float scale_factor)
 	{
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -175,6 +220,8 @@ public:
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, texture_atlas);
 		shader.setInt("Texture_1", 0);
+		
+		const float add_advance_per_char_temp = add_advance_per_char <0 ? -1 * add_advance_per_char/2 : 0;
 
 		for (uint32_t c : text)
 		{
@@ -184,23 +231,22 @@ public:
 			float tex_x = static_cast<float>(char_pos[c].first) / width;
 			float tex_y = static_cast<float>(char_pos[c].second) / height;
 
-			tex_coords[0] = tex_x;								tex_coords[1] = tex_y + normalized_char_height; // Bottom-left
-			tex_coords[2] = tex_x + normalized_char_width;		tex_coords[3] = tex_y + normalized_char_height; // Bottom-right
-			tex_coords[4] = tex_x + normalized_char_width;		tex_coords[5] = tex_y; // Top-right
-			tex_coords[6] = tex_x;								tex_coords[7] = tex_y; // Top-left
+			tex_coords[0] = tex_x + add_advance_per_char_temp;								tex_coords[1] = tex_y + normalized_char_height; // Bottom-left
+			tex_coords[2] = tex_x + normalized_char_width - add_advance_per_char_temp;		tex_coords[3] = tex_y + normalized_char_height; // Bottom-right
+			tex_coords[4] = tex_x + normalized_char_width - add_advance_per_char_temp;		tex_coords[5] = tex_y; // Top-right
+			tex_coords[6] = tex_x + add_advance_per_char_temp;								tex_coords[7] = tex_y; // Top-left
 
 			glBindBuffer(GL_ARRAY_BUFFER, VBO_tex);
 			glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(tex_coords), tex_coords);
 
 			glm::mat4 model = glm::mat4(1.0f);
-			model = glm::translate(model, glm::vec3(x, y, 0.0f));
-			float scale_factor = 2.0f; //TODO: make changable
+			model = glm::translate(model, glm::vec3(starting_x, starting_y, 0.0f));
 			model = glm::scale(model, glm::vec3(scale_factor, scale_factor, 1.0f));
 
 			shader.setMatrix4fv("model", glm::value_ptr(model));
 			glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
-			x +=( static_cast<float>(char_width)/screen_width)* scale_factor;
+			starting_x += pos_coords[3]* scale_factor;
 		}
 		glEnable(GL_DEPTH_TEST);
 	}

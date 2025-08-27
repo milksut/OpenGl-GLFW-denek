@@ -90,15 +90,25 @@ public:
     {
         glUniform1f(glGetUniformLocation(ID, name.c_str()), value);
     }
+    //
+    void setFloat(const std::string& name, float value[], int amount) const
+    {
+        glUniform1fv(glGetUniformLocation(ID, name.c_str()),amount ,value);
+    }
     // ------------------------------------------------------------------------
     void setMatrix4fv(const std::string& name, const float* value) const
     {
         glUniformMatrix4fv(glGetUniformLocation(ID, name.c_str()), 1, GL_FALSE, value);
 	}
+    // ------------------------------------------------------------------------
     void setVec4(const std::string& name, const glm::vec4& value) const
     {
         glUniform4fv(glGetUniformLocation(ID, name.c_str()), 1, glm::value_ptr(value));
     }
+    void setVec4(const std::string& name, const glm::vec4 value[], int amount) const
+    {
+        glUniform4fv(glGetUniformLocation(ID, name.c_str()), amount, glm::value_ptr(value[0]));
+	}
 
 private:
     // utility function for checking shader compilation/linking errors.

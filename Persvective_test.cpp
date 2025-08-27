@@ -23,31 +23,59 @@ glm::vec3 camera_ang = glm::vec3(0.0f, 0.0f, 0.0f);
 
 
 camera_test camera(camera_direction, camera_ang);
-
-
+TextRenderer *printer;
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
-	// make sure the viewport matches the new window dimensions; note that width and 
-	// height will be significantly larger than specified on retina displays.
-
+	//// make sure the viewport matches the new window dimensions; note that width and 
+	//// height will be significantly larger than specified on retina displays.
 	const float new_aspect_ratio = (float)width / (float)height;
-	if (new_aspect_ratio < aspect_ratio)
-	{
-		//if the new aspect ratio is smaller than the original one, we need to adjust the viewport
-		int new_height = (int)(width / aspect_ratio);
-		glViewport(0, (height - new_height) / 2, width, new_height);
-	}
-	else
-	{
-		//if the new aspect ratio is larger than the original one, we need to adjust the viewport
-		int new_width = (int)(height * aspect_ratio);
-		glViewport((width - new_width) / 2, 0, new_width, height);
-	}
-}
+	//if (new_aspect_ratio < aspect_ratio)
+	//{
+	//	//if the new aspect ratio is smaller than the original one, we need to adjust the viewport
+	//	int new_height = (int)(width / aspect_ratio);
+	//	glViewport(0, (height - new_height) / 2, width, new_height);
+	//}
+	//else
+	//{
+	//	//if the new aspect ratio is larger than the original one, we need to adjust the viewport
+	//	int new_width = (int)(height * aspect_ratio);
+	//	glViewport((width - new_width) / 2, 0, new_width, height);
+	//}
+	glViewport(0, 0, width, height);
 
+	camera.update_projection(45.0f, new_aspect_ratio, 0.1f, 100.0f);
+	printer->change_screen_size(width, height);
+}
+bool pressable = true;
 void processInput(GLFWwindow* window, float camera_speed, glm::vec3 &camera_direction, camera_test &camera)
 {
+	
+	if(glfwGetKey(window, GLFW_KEY_F11) == GLFW_PRESS && pressable)
+	{
+		static bool is_fullscreen = false;
+		static int windowed_xpos = 100, windowed_ypos = 100, windowed_width = 800, windowed_height = 600;
+		glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+		if(!is_fullscreen)
+		{
+			glfwGetWindowPos(window, &windowed_xpos, &windowed_ypos);
+			glfwGetWindowSize(window, &windowed_width, &windowed_height);
+			GLFWmonitor* monitor = glfwGetPrimaryMonitor();
+			const GLFWvidmode* mode = glfwGetVideoMode(monitor);
+			glfwSetWindowMonitor(window, monitor, 0, 0, mode->width, mode->height, mode->refreshRate);
+			is_fullscreen = true;
+		}
+		else
+		{
+			glfwSetWindowMonitor(window, nullptr, windowed_xpos, windowed_ypos, windowed_width, windowed_height, 0);
+			is_fullscreen = false;
+		}
+		pressable = false;
+	}
+	if(glfwGetKey(window, GLFW_KEY_F11) == GLFW_RELEASE)
+	{
+		pressable = true;
+	}
 	if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
 		camera_speed *= 2;
 
@@ -138,9 +166,13 @@ int main()
 		return -1;
 	}
 	
-	TextRenderer printer("Textures\\Font_texture_Atlas\\DejaVu Sans Mono_512X256_16x32.png",
+	printer = new TextRenderer("Textures\\Font_texture_Atlas\\DejaVu Sans Mono_512X256_16x32.png",
 	"Textures\\Font_texture_Atlas\\DejaVu Sans Mono_512X256_16x32.txt", width, height, 16, 32,
-	"Shaders\\Vertex_shaders\\Text_render_vertex.vert", "Shaders\\Fragment_shaders\\Text_render_fragment.frag");
+	"Shaders\\Vertex_shaders\\Text_render_vertex.vert", "Shaders\\Fragment_shaders\\Text_render_fragment.frag",0.005f);
+
+	printer->change_deleted_colors(0, glm::vec4(0.0f, 0.0f, 0.0f, 1.0f), 1.5f, glm::vec4(1.0f,1.0f,1.0f,0.1f));
+	printer->change_deleted_colors(1, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), 1.5f, glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));
+	printer->push_deleted_colors();
 
 	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 	glfwSetCursorPosCallback(window, mouse_callback);
@@ -323,11 +355,6 @@ int main()
 	//// note that we're translating the scene in the reverse direction of where we want to move
 	//view = glm::translate(view, glm::vec3(0.0f, 0.0f, 0.0f));
 
-	glm::mat4 projection;
-	//radians(45.0f) - FOV / aspect_ratio - aspect ratio
-	//0.1f - distace with near plane(wiew start plane) / 100.0f - distance with far plane
-	projection = glm::perspective(glm::radians(85.0f), aspect_ratio, 0.1f, 100.0f);
-
 	glEnable(GL_DEPTH_TEST); // Enable depth testing for 3D rendering
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
@@ -354,7 +381,7 @@ int main()
 		shader.use();
 		shader.setMatrix4fv("model", glm::value_ptr(model));
 		shader.setMatrix4fv("view", glm::value_ptr(camera.get_view_matrix()));
-		shader.setMatrix4fv("projection", glm::value_ptr(projection));
+		shader.setMatrix4fv("projection", glm::value_ptr(camera.projection));
 		
 
 		glBindVertexArray(VAO_sky_box);
@@ -386,9 +413,10 @@ int main()
 			x = 0;
 			z = glfwGetTime();
 		}
-		printer.render_text("FPS: " + std::to_string(y), -1, 0.9);
+		printer->render_text("FPS: " + std::to_string(y), -1, 0.9,2.0f);
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();
 	}
+	delete printer;
 }
