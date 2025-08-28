@@ -79,5 +79,11 @@
     <None Include="Shaders\Vertex_shaders\Text_render_vertex.vert">
       <Filter>Source Files\shaders</Filter>
     </None>
+    <None Include="Shaders\Fragment_shaders\Light_texture_fragment.frag">
+      <Filter>Source Files\shaders</Filter>
+    </None>
+    <None Include="Shaders\Vertex_shaders\Light_MVP_texture_vertex.vert">
+      <Filter>Source Files\shaders</Filter>
+    </None>
   </ItemGroup>
 </Project>

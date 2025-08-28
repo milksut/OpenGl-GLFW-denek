@@ -144,12 +144,14 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Shaders\Fragment_shaders\Basic_fragment.frag" />
+    <None Include="Shaders\Fragment_shaders\Light_texture_fragment.frag" />
     <None Include="Shaders\Fragment_shaders\Basic_texture_fragment.frag" />
     <None Include="Shaders\Fragment_shaders\Black_fragment.frag" />
     <None Include="Shaders\Fragment_shaders\Text_render_fragment.frag" />
     <None Include="Shaders\Vertex_shaders\Basic_texture_vertex.vert" />
     <None Include="Shaders\Vertex_shaders\Basic_vertex.vert" />
     <None Include="Shaders\Vertex_shaders\MVP_texture_vertex.vert" />
+    <None Include="Shaders\Vertex_shaders\Light_MVP_texture_vertex.vert" />
     <None Include="Shaders\Vertex_shaders\Text_render_vertex.vert" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
