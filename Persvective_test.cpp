@@ -16,8 +16,32 @@ const float aspect_ratio = (float)width / (float)height;
 float mouse_lastX = width/2, mouse_lastY = height/2;
 
 const float mouse_sensitivity = 0.3f;
-const float ambient_light_strength = 0.3f;
-const float specularStrength = 0.7;
+
+//struct Material {
+//	sampler2D diffuse;
+//	sampler2D specular;
+//	float     shininess;
+//};
+
+struct Light {
+	glm::vec3 light_pos;
+
+	glm::vec3 ambient;
+	glm::vec3 diffuse;
+	glm::vec3 specular;
+};
+
+
+Light light_source1 =
+{
+	glm::vec3(7, 7, 7),
+
+	glm::vec3(0.2f,0.2f,0.2f),
+	glm::vec3(1.5f,1.5f,1.5f),
+	glm::vec3(1.5f,1.5f,1.5f),
+
+};
+
 
 
 camera_test camera(glm::vec3(0.0f, 0.0f, 0.0f),glm::vec3(0.0f, 0.0f, 0.0f));
@@ -180,14 +204,15 @@ int main()
 		"Shaders\\Fragment_shaders\\Black_fragment.frag");*/
 
 	int width, height, nrChannels;
-	unsigned int texture = load_image("Textures\\random\\Tile_17-512x512.png",
+	unsigned int texture = load_image("Textures\\random\\container2.png",
+		width, height, nrChannels);
+
+	unsigned int spec_map = load_image("Textures\\random\\container2_specular.png",
 		width, height, nrChannels);
 
 	unsigned int sky_texture = load_image("Textures\\random\\skybox_example.png",
 		width, height, nrChannels);
 
-	unsigned int white = load_image("Textures\\random\\white_sqr_512x512px.png",
-		width, height, nrChannels);
 
 	float skybox[] =
 	{
@@ -342,18 +367,24 @@ int main()
 		"Shaders\\Fragment_shaders\\Light_texture_fragment.frag");
 
 	Shader light_source_shader("Shaders\\Vertex_shaders\\MVP_texture_vertex.vert",
-		"Shaders\\Fragment_shaders\\Basic_texture_fragment.frag");
+		"Shaders\\Fragment_shaders\\Basic_fragment.frag");
 	
-	glm::vec3 light_pos = glm::vec3(30, 30, 30);
 
+	//set material and light
 	light_shader.use();
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, texture);
 	light_shader.setInt("Texture_1", 0);
-	light_shader.setVec3("lightPos", camera.get_view_matrix() * glm::vec4(light_pos, 1.0f));
-	light_shader.setVec3("lightColor", glm::vec3(1.0f, 1.0f, 1.0f));
-	light_shader.setFloat("ambientStrength", ambient_light_strength);
-	light_shader.setFloat("specularStrength", specularStrength);
+	light_shader.setVec3("light.light_pos", camera.get_view_matrix() * glm::vec4(light_source1.light_pos, 1.0f));
+	light_shader.setVec3("light.ambient", light_source1.ambient);
+	light_shader.setVec3("light.diffuse", light_source1.diffuse);
+	light_shader.setVec3("light.specular", light_source1.specular);
+
+	light_shader.setInt("material.diffuse", 0);
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, spec_map);
+	light_shader.setInt("material.specular", 1);;
+	light_shader.setFloat("material.shininess", 128.0f);
 
 	glm::vec3 cubePositions[] = {
 	glm::vec3(0.0f,  0.0f,  0.0f),
@@ -384,7 +415,6 @@ int main()
 
 	glEnable(GL_DEPTH_TEST); // Enable depth testing for 3D rendering
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-
 	int x= 0,y =0,z=0;
 	glfwSetTime(0.0);
 	while (!glfwWindowShouldClose(window))
@@ -398,17 +428,18 @@ int main()
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		
-		
+		/*light_source1.diffuse.x = sin(glfwGetTime());
+		light_source1.diffuse.y = sin(glfwGetTime() * 0.3f);
+		light_source1.diffuse.z = sin(glfwGetTime() * 0.5f);*/
+
 		glBindVertexArray(VAO_light);
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, white);
-		light_source_shader.setInt("Texture_1", 0);
+		light_source_shader.setVec3("ourColor", light_source1.diffuse);
 
 		model = glm::rotate(model, glm::radians(0.25f) , glm::vec3(0.0f, 1.0f, 0.0f));
-		light_pos = model * glm::vec4(light_pos,1.0f);
+		light_source1.light_pos = model * glm::vec4(light_source1.light_pos,1.0f);
 
 		model = glm::mat4(1.0f);
-		model = glm::translate(model, light_pos);
+		model = glm::translate(model, light_source1.light_pos);
 		light_source_shader.setMatrix4fv("model", glm::value_ptr(model));
 		light_source_shader.setMatrix4fv("view", glm::value_ptr(camera.get_view_matrix()));
 		light_source_shader.setMatrix4fv("projection", glm::value_ptr(camera.projection));
@@ -425,7 +456,8 @@ int main()
 		light_shader.setMatrix4fv("view", glm::value_ptr(camera.get_view_matrix()));
 
 		light_shader.setMatrix4fv("transpose_inverse_viewXmodel", glm::value_ptr(transpose(inverse(camera.get_view_matrix()*model))));
-		light_shader.setVec3("lightPos", camera.get_view_matrix() * glm::vec4(light_pos, 1.0f));
+		light_shader.setVec3("light.light_pos", camera.get_view_matrix() * glm::vec4(light_source1.light_pos, 1.0f));
+		light_shader.setVec3("light.diffuse", light_source1.diffuse);
 
 		light_shader.setMatrix4fv("projection", glm::value_ptr(camera.projection));
 
@@ -450,7 +482,7 @@ int main()
 			model = glm::translate(model, cubePositions[i]);
 			light_shader.setMatrix4fv("model", glm::value_ptr(model));
 			light_shader.setMatrix4fv("transpose_inverse_viewXmodel", glm::value_ptr(transpose(inverse(camera.get_view_matrix() * model))));
-			light_shader.setVec3("lightPos", camera.get_view_matrix() * glm::vec4(light_pos, 1.0f));
+			light_shader.setVec3("light.light_pos", camera.get_view_matrix() * glm::vec4(light_source1.light_pos, 1.0f));
 
 			glDrawArrays(GL_TRIANGLES, 0, 36);
 		}
