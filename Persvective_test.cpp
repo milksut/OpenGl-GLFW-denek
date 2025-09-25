@@ -24,7 +24,8 @@ const float mouse_sensitivity = 0.3f;
 //};
 
 struct Light {
-	glm::vec3 light_pos;
+	bool has_a_source;
+	glm::vec3 light_pos;//used as direction if has no source
 
 	glm::vec3 ambient;
 	glm::vec3 diffuse;
@@ -34,11 +35,12 @@ struct Light {
 
 Light light_source1 =
 {
+	true,
 	glm::vec3(7, 7, 7),
 
-	glm::vec3(0.2f,0.2f,0.2f),
+	glm::vec3(0.4f,0.4f,0.4f),
 	glm::vec3(1.5f,1.5f,1.5f),
-	glm::vec3(1.5f,1.5f,1.5f),
+	glm::vec3(15.0f,15.0f,15.0f),
 
 };
 
@@ -456,7 +458,12 @@ int main()
 		light_shader.setMatrix4fv("view", glm::value_ptr(camera.get_view_matrix()));
 
 		light_shader.setMatrix4fv("transpose_inverse_viewXmodel", glm::value_ptr(transpose(inverse(camera.get_view_matrix()*model))));
-		light_shader.setVec3("light.light_pos", camera.get_view_matrix() * glm::vec4(light_source1.light_pos, 1.0f));
+		light_shader.setBool("light.has_a_source", light_source1.has_a_source);
+
+		light_shader.setVec3("light.light_pos", light_source1.has_a_source ?
+			camera.get_view_matrix() * glm::vec4(light_source1.light_pos, 1.0f) 
+			: glm::vec4(light_source1.light_pos, 1.0f));
+
 		light_shader.setVec3("light.diffuse", light_source1.diffuse);
 
 		light_shader.setMatrix4fv("projection", glm::value_ptr(camera.projection));

@@ -7,6 +7,7 @@ struct Material {
 }; 
 
 struct Light{
+    bool has_a_source;
     vec3 light_pos;
 
     vec3 ambient;
@@ -27,7 +28,7 @@ uniform sampler2D Texture_1;
 void main()
 {
     vec3 norm = normalize(Normal);
-    vec3 lightDir = normalize(light.light_pos - FragPos); 
+    vec3 lightDir = light.has_a_source ? normalize(light.light_pos - FragPos) : light.light_pos; 
     vec3 diff_map_val = vec3(texture(material.diffuse, TexCoord));
 
     vec3 ambient_calc = light.ambient * diff_map_val;
