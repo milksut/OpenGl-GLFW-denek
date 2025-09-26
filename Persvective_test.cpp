@@ -25,11 +25,19 @@ const float mouse_sensitivity = 0.3f;
 
 struct Light {
 	bool has_a_source;
-	glm::vec3 light_pos;//used as direction if has no source
+	glm::vec3 light_pos;
+	glm::vec3 light_target;
 
 	glm::vec3 ambient;
 	glm::vec3 diffuse;
 	glm::vec3 specular;
+
+	float cos_soft_cut_off_angle;
+	float cos_hard_cut_off_angle;
+
+	float constant;
+	float linear;
+	float quadratic;
 };
 
 
@@ -42,6 +50,19 @@ Light light_source1 =
 	glm::vec3(1.5f,1.5f,1.5f),
 	glm::vec3(15.0f,15.0f,15.0f),
 
+};
+
+Light flashlight = 
+{
+	true,
+	glm::vec3(0, 0, 0),
+	glm::vec3(0, 0, -1),
+	glm::vec3(0.05f, 0.05f, 0.05f),
+	glm::vec3(1.3f, 1.3f, 1.3f),
+	glm::vec3(15.0f, 15.0f, 15.0f),
+	glm::cos(glm::radians(12.5f)),
+	glm::cos(glm::radians(17.5f)),
+	1.0f, 0.045f, 0.0075f
 };
 
 
@@ -377,10 +398,27 @@ int main()
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, texture);
 	light_shader.setInt("Texture_1", 0);
-	light_shader.setVec3("light.light_pos", camera.get_view_matrix() * glm::vec4(light_source1.light_pos, 1.0f));
+
+
+	/*light_shader.setVec3("light.light_pos", camera.get_view_matrix() * glm::vec4(light_source1.light_pos, 1.0f));
 	light_shader.setVec3("light.ambient", light_source1.ambient);
 	light_shader.setVec3("light.diffuse", light_source1.diffuse);
-	light_shader.setVec3("light.specular", light_source1.specular);
+	light_shader.setVec3("light.specular", light_source1.specular);*/
+
+	light_shader.setInt("num_of_lights", 1);
+	light_shader.setVec3("lights[0].light_pos", flashlight.light_pos);
+	light_shader.setBool("lights[0].has_a_source", flashlight.has_a_source);
+	light_shader.setVec3("lights[0].light_target", flashlight.light_target);
+	light_shader.setFloat("lights[0].cos_soft_cut_off_angle", flashlight.cos_soft_cut_off_angle);
+	light_shader.setFloat("lights[0].cos_hard_cut_off_angle", flashlight.cos_hard_cut_off_angle);
+	light_shader.setFloat("lights[0].constant", flashlight.constant);
+	light_shader.setFloat("lights[0].linear", flashlight.linear);
+	light_shader.setFloat("lights[0].quadratic", flashlight.quadratic);
+
+	light_shader.setVec3("lights[0].ambient", flashlight.ambient);
+	light_shader.setVec3("lights[0].diffuse", flashlight.diffuse);
+	light_shader.setVec3("lights[0].specular", flashlight.specular);
+
 
 	light_shader.setInt("material.diffuse", 0);
 	glActiveTexture(GL_TEXTURE1);
@@ -458,13 +496,7 @@ int main()
 		light_shader.setMatrix4fv("view", glm::value_ptr(camera.get_view_matrix()));
 
 		light_shader.setMatrix4fv("transpose_inverse_viewXmodel", glm::value_ptr(transpose(inverse(camera.get_view_matrix()*model))));
-		light_shader.setBool("light.has_a_source", light_source1.has_a_source);
-
-		light_shader.setVec3("light.light_pos", light_source1.has_a_source ?
-			camera.get_view_matrix() * glm::vec4(light_source1.light_pos, 1.0f) 
-			: glm::vec4(light_source1.light_pos, 1.0f));
-
-		light_shader.setVec3("light.diffuse", light_source1.diffuse);
+	
 
 		light_shader.setMatrix4fv("projection", glm::value_ptr(camera.projection));
 
@@ -489,7 +521,6 @@ int main()
 			model = glm::translate(model, cubePositions[i]);
 			light_shader.setMatrix4fv("model", glm::value_ptr(model));
 			light_shader.setMatrix4fv("transpose_inverse_viewXmodel", glm::value_ptr(transpose(inverse(camera.get_view_matrix() * model))));
-			light_shader.setVec3("light.light_pos", camera.get_view_matrix() * glm::vec4(light_source1.light_pos, 1.0f));
 
 			glDrawArrays(GL_TRIANGLES, 0, 36);
 		}
