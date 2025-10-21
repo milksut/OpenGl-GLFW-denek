@@ -71,8 +71,13 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>C:\Users\altay\Desktop\kod\extra_libs\OpenGL\includes;$(IncludePath)</IncludePath>
-    <LibraryPath>C:\Users\altay\Desktop\kod\extra_libs\OpenGL\Lib;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(ProjectDir)\includes-libs\includes;$(IncludePath)</IncludePath>
+    <LibraryPath>$(ProjectDir)\includes-libs\Lib;$(LibraryPath)</LibraryPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <IncludePath>$(ProjectDir)\includes-libs\includes;$(IncludePath)</IncludePath>
+    <LibraryPath>$(ProjectDir)\includes-libs\Lib;$(LibraryPath)</LibraryPath>
+    <LinkIncremental>true</LinkIncremental>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -125,10 +130,11 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>glfw3.lib;opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\kod\extra_libs\OpenGL\glad.c" />
+    <ClCompile Include="glad.c" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="my_first_triangle.cpp" />
     <ClCompile Include="Persvective_test.cpp" />
