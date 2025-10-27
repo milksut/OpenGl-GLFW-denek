@@ -26,8 +26,8 @@ private:
 
 	float tex_coords[8] = { 0 };
 
-
-	std::unordered_map<uint32_t, std::pair<int, int>> char_pos;
+	std::vector<float> vertices;
+	std::unordered_map<uint32_t, std::pair<float, float>> char_pos;
 	std::vector<unsigned int> indices;
 	int indices_count = 10;
 
@@ -89,6 +89,7 @@ public:
 					indices.push_back(base);
 				}
 
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER,indices.size() * sizeof(unsigned int), indices.data(), GL_STREAM_DRAW);
 
 		glBindVertexArray(VAO);
 		glActiveTexture(GL_TEXTURE0);
@@ -127,7 +128,7 @@ public:
 				std::cerr << "error on line: " << x;
 				throw std::runtime_error("Invalid line format");
 			}
-			char_pos[ascii_code] = { x * char_width, y*char_height};
+			char_pos[ascii_code] = { (float)(x*char_width) / width, (float)(y*char_height) / height };
 			if (x >= char_per_row - 1)
 			{
 				x = 0;
@@ -203,9 +204,10 @@ public:
 		shader.setInt("Texture_1", 0);
 		
 		// Build vertex data for all characters at once
-		std::vector<float> vertices;
+		
+		vertices.clear();
 		vertices.reserve(text_size * 20); // 5 floats per vertex * 4 vertices per char
-
+		bool flag_indices_size_change = false;
 		if (indices_count < text_size)
 		{
 			// Regenerate indices if needed
@@ -221,6 +223,7 @@ public:
 				indices.push_back(base);
 			}
 			indices_count = static_cast<int>(text_size);
+			flag_indices_size_change = true;
 		}
 
 
@@ -232,8 +235,8 @@ public:
 			if (map_pos == char_pos.end())
 				continue; // Skip characters not in the map
 
-			float tex_x = static_cast<float>(map_pos->second.first) / width;
-			float tex_y = static_cast<float>(map_pos->second.second) / height;
+			float tex_x = static_cast<float>(map_pos->second.first);
+			float tex_y = static_cast<float>(map_pos->second.second);
 
 
 			tex_coords[0] = tex_x + add_advance_per_char_temp;								tex_coords[1] = tex_y + normalized_char_height; // Bottom-left
@@ -258,10 +261,12 @@ public:
 		}
 
 		glBindBuffer(GL_ARRAY_BUFFER, VBO);
-		glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data(), GL_STREAM_DRAW);
+		glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), nullptr, GL_STREAM_DRAW);
+		glBufferSubData(GL_ARRAY_BUFFER,0, vertices.size() * sizeof(float), vertices.data());
 
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-		glBufferData(GL_ELEMENT_ARRAY_BUFFER, text_size * 6 * sizeof(unsigned int), indices.data(), GL_STREAM_DRAW);
+		if(flag_indices_size_change)
+			glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_STREAM_DRAW);
 
 		glDrawElements(GL_TRIANGLES, text_size*6, GL_UNSIGNED_INT, 0);
 
