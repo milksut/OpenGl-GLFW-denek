@@ -1,3 +1,6 @@
+#include <thread>   // for std::this_thread::sleep_for
+#include <chrono>
+
 #include <glad/glad.h> 
 #include <glfw/glfw3.h>
 #include <glm/glm.hpp>
@@ -9,6 +12,10 @@
 #include "Headers\Camera_test.h"
 #include "Headers\Some_functions.h"
 #include "Headers\TextRenderer.h"
+
+const double Target_fps = 144;
+const double Target_frame_time = 1.0 / Target_fps;
+const bool enable_vSync = false;
 
 const unsigned int width = 800, height = 600;
 const float aspect_ratio = (float)width / (float)height;
@@ -206,6 +213,8 @@ int main()
 	if (!window) {
 		return -1;
 	}
+
+	glfwSwapInterval(enable_vSync);
 
 	camera.update_projection(45.0f, aspect_ratio, 0.1f, 1000.0f);
 
@@ -455,22 +464,23 @@ int main()
 
 	glEnable(GL_DEPTH_TEST); // Enable depth testing for 3D rendering
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-	int x= 0,y =0,z=0;
+	int x = 0, y = 0, z = 0;
+	double time_of_last_frame = 1;
+	std::string fps_text = "";
+	glm::mat4 model = glm::mat4(1.0f);
 	glfwSetTime(0.0);
 	while (!glfwWindowShouldClose(window))
 	{
-		processInput(window, 0.1,camera);
+
+		processInput(window, 0.1 * ((glfwGetTime() -time_of_last_frame)/Target_frame_time), camera);
+		time_of_last_frame = glfwGetTime();
 
 		light_source_shader.use();
 		
-		glm::mat4 model = glm::mat4(1.0f);
+		model = glm::mat4(1.0f);
 
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		
-		/*light_source1.diffuse.x = sin(glfwGetTime());
-		light_source1.diffuse.y = sin(glfwGetTime() * 0.3f);
-		light_source1.diffuse.z = sin(glfwGetTime() * 0.5f);*/
 
 		glBindVertexArray(VAO_light);
 		light_source_shader.setVec3("ourColor", light_source1.diffuse);
@@ -485,8 +495,6 @@ int main()
 		light_source_shader.setMatrix4fv("projection", glm::value_ptr(camera.projection));
 
 		glDrawArrays(GL_TRIANGLES, 0, 36);
-
-
 
 		model = glm::mat4(1.0f);
 		model = glm::scale(model, glm::vec3(50.0f, 50.0f, 50.0f));
@@ -517,7 +525,7 @@ int main()
 
 		for (unsigned int i = 0; i < 10; i++)
 		{
-			glm::mat4 model = glm::mat4(1.0f);
+			model = glm::mat4(1.0f);
 			model = glm::translate(model, cubePositions[i]);
 			light_shader.setMatrix4fv("model", glm::value_ptr(model));
 			light_shader.setMatrix4fv("transpose_inverse_viewXmodel", glm::value_ptr(transpose(inverse(camera.get_view_matrix() * model))));
@@ -528,13 +536,14 @@ int main()
 		
 
 		x++;
-		if(glfwGetTime() -z > 1.0f)
+		if(glfwGetTime() - z >= 1.0f)
 		{
 			y = x;
 			x = 0;
 			z = glfwGetTime();
+			fps_text = "FPS: " + std::to_string(y);
 		}
-		printer->render_text("FPS: " + std::to_string(y), -1, 0.9,2.0f);
+		printer->render_text(fps_text, -1, 0.9,2.0f);
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();

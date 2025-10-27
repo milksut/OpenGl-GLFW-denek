@@ -13,39 +13,23 @@
 class TextRenderer
 {
 private:
-	unsigned int VAO, VBO_pos,VBO_tex, EBO;
+	unsigned int VAO, VBO, EBO;
 	Shader shader;
 	unsigned int texture_atlas;
 	int char_width, char_height;
 	float normalized_char_width, normalized_char_height;
 	int screen_width, screen_height;
-	float add_advance_per_char;
+	float screen_char_width, screen_char_height, add_advance_per_char;
+
 	
 	int nrChannels, width, height;
 
-	float pos_coords[12] =
-	{
-		0.0f, 0.0f, 0.0f,	// Bottom-left
-		1.0f, 0.0f, 0.0f,	// Bottom-right
-		1.0f, 1.0f, 0.0f,	// Top-right
-		0.0f, 1.0f, 0.0f	// Top-left
-	};
+	float tex_coords[8] = { 0 };
 
-	float tex_coords[8] = 
-	{
-		0.0f, 0.0f,
-		0.0f, 0.0f,
-		0.0f, 0.0f,
-		0.0f, 0.0f
-	};
-
-	const int ebo[6] = 
-	{
-		0,1,2,
-		0,2,3
-	};
 
 	std::unordered_map<uint32_t, std::pair<int, int>> char_pos;
+	std::vector<unsigned int> indices;
+	int indices_count = 10;
 
 	int get_ascii_code(const std::string& str)
 	{
@@ -59,7 +43,6 @@ private:
 		return std::stoi(str.substr(start, fin - start));
 	}
 
-	
 
 public:
 	glm::vec4 deleted_colors[8];
@@ -82,41 +65,41 @@ public:
 		normalized_char_width = static_cast<float>(char_width) / width;
 		normalized_char_height = static_cast<float>(char_height) / height;
 
-		pos_coords[3] = (static_cast<float>(char_width) / screen_width) + add_advance_per_char;
-		pos_coords[6] = (static_cast<float>(char_width) / screen_width) + add_advance_per_char;
-
-		pos_coords[7] = static_cast<float>(char_height) / screen_height;
-		pos_coords[10] = static_cast<float>(char_height) / screen_height;
+		screen_char_width = (static_cast<float>(char_width) / screen_width) + add_advance_per_char;
+		screen_char_height = static_cast<float>(char_height) / screen_height;
 
 		glGenVertexArrays(1, &VAO);
-		glGenBuffers(1, &VBO_pos);
-		glGenBuffers(1, &VBO_tex);
+		glGenBuffers(1, &VBO);
 		glGenBuffers(1, &EBO);
+
+
+		glBindBuffer(GL_ARRAY_BUFFER, VBO);
+
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+
+		indices.reserve(indices_count * 6);// 6 indices per char
+				for (size_t i = 0; i < indices_count; i++)
+				{
+					unsigned int base = i * 4;
+					indices.push_back(base);
+					indices.push_back(base + 1);
+					indices.push_back(base + 2);
+					indices.push_back(base + 2);
+					indices.push_back(base + 3);
+					indices.push_back(base);
+				}
+
 
 		glBindVertexArray(VAO);
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, texture_atlas);
 
-		// Upload positions
-		glBindBuffer(GL_ARRAY_BUFFER, VBO_pos);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(pos_coords), pos_coords, GL_STATIC_DRAW);
-
-		
-
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-		glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(ebo), ebo, GL_STATIC_DRAW);
-
-		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
 		glEnableVertexAttribArray(0);
 
-
-		// Upload texCoords
-		glBindBuffer(GL_ARRAY_BUFFER, VBO_tex);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(tex_coords), tex_coords, GL_DYNAMIC_DRAW);
-
-		glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
+		glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
 		glEnableVertexAttribArray(1);
-
+		
 
 
 		int char_per_row = width / char_width;
@@ -124,6 +107,7 @@ public:
 
 		char_pos.reserve(char_per_row * char_per_col);
 
+		
 
 		std::ifstream file(char_set_path); // Open the file
 		if (!file.is_open())
@@ -159,8 +143,7 @@ public:
 	~TextRenderer()
 	{
 		glDeleteVertexArrays(1, &VAO);
-		glDeleteBuffers(1, &VBO_pos);
-		glDeleteBuffers(1, &VBO_tex);
+		glDeleteBuffers(1, &VBO);
 		glDeleteBuffers(1, &EBO);
 		glDeleteTextures(1, &texture_atlas);
 	}
@@ -192,62 +175,96 @@ public:
 	{
 		screen_width = new_width;
 		screen_height = new_height;
-		pos_coords[3] = (static_cast<float>(char_width) / screen_width) + add_advance_per_char;
-		pos_coords[6] = (static_cast<float>(char_width) / screen_width) + add_advance_per_char;
-		pos_coords[7] = static_cast<float>(char_height) / screen_height;
-		pos_coords[10] = static_cast<float>(char_height) / screen_height;
-		glBindBuffer(GL_ARRAY_BUFFER, VBO_pos);
-		glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(pos_coords), pos_coords);
+		screen_char_width = (static_cast<float>(char_width) / screen_width) + add_advance_per_char;
+		screen_char_height = static_cast<float>(char_height) / screen_height;
 	}
 
 	void change_add_advance_per_char(float new_value)
 	{
 		add_advance_per_char = new_value;
-		pos_coords[3] = (static_cast<float>(char_width) / screen_width) + add_advance_per_char;
-		pos_coords[6] = (static_cast<float>(char_width) / screen_width) + add_advance_per_char;
-		glBindBuffer(GL_ARRAY_BUFFER, VBO_pos);
-		glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(pos_coords), pos_coords);
+		screen_char_width = (static_cast<float>(char_width) / screen_width) + add_advance_per_char;
+		screen_char_height = static_cast<float>(char_height) / screen_height;
 	}
 
 	void render_text(const std::string& text, float starting_x, float starting_y, float scale_factor)
 	{
+		if (text.empty())
+			return;
+		int text_size = text.size();
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+		glDisable(GL_DEPTH_TEST);
 
 		shader.use();
-		glDisable(GL_DEPTH_TEST);
+		
 		glBindVertexArray(VAO);
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, texture_atlas);
 		shader.setInt("Texture_1", 0);
 		
+		// Build vertex data for all characters at once
+		std::vector<float> vertices;
+		vertices.reserve(text_size * 20); // 5 floats per vertex * 4 vertices per char
+
+		if (indices_count < text_size)
+		{
+			// Regenerate indices if needed
+			indices.reserve(text_size * 6);
+			for (size_t i = indices_count; i < text_size; i++)
+			{
+				unsigned int base = i * 4;
+				indices.push_back(base);
+				indices.push_back(base + 1);
+				indices.push_back(base + 2);
+				indices.push_back(base + 2);
+				indices.push_back(base + 3);
+				indices.push_back(base);
+			}
+			indices_count = static_cast<int>(text_size);
+		}
+
+
 		const float add_advance_per_char_temp = add_advance_per_char <0 ? -1 * add_advance_per_char/2 : 0;
 
 		for (uint32_t c : text)
 		{
-			if (char_pos.find(c) == char_pos.end())
+			auto map_pos = char_pos.find(c);
+			if (map_pos == char_pos.end())
 				continue; // Skip characters not in the map
 
-			float tex_x = static_cast<float>(char_pos[c].first) / width;
-			float tex_y = static_cast<float>(char_pos[c].second) / height;
+			float tex_x = static_cast<float>(map_pos->second.first) / width;
+			float tex_y = static_cast<float>(map_pos->second.second) / height;
+
 
 			tex_coords[0] = tex_x + add_advance_per_char_temp;								tex_coords[1] = tex_y + normalized_char_height; // Bottom-left
 			tex_coords[2] = tex_x + normalized_char_width - add_advance_per_char_temp;		tex_coords[3] = tex_y + normalized_char_height; // Bottom-right
 			tex_coords[4] = tex_x + normalized_char_width - add_advance_per_char_temp;		tex_coords[5] = tex_y; // Top-right
 			tex_coords[6] = tex_x + add_advance_per_char_temp;								tex_coords[7] = tex_y; // Top-left
 
-			glBindBuffer(GL_ARRAY_BUFFER, VBO_tex);
-			glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(tex_coords), tex_coords);
 
-			glm::mat4 model = glm::mat4(1.0f);
-			model = glm::translate(model, glm::vec3(starting_x, starting_y, 0.0f));
-			model = glm::scale(model, glm::vec3(scale_factor, scale_factor, 1.0f));
-
-			shader.setMatrix4fv("model", glm::value_ptr(model));
-			glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-
-			starting_x += pos_coords[3]* scale_factor;
+			
+			float ending_x = starting_x + screen_char_width * scale_factor;
+			float ending_y = starting_y + screen_char_height * scale_factor;
+			vertices.insert(vertices.end(),
+			{
+				//	x			y		z		u			   v
+				starting_x, starting_y, 00, tex_coords[0], tex_coords[1],
+				ending_x,   starting_y, 00, tex_coords[2], tex_coords[3],
+				ending_x,   ending_y,   00, tex_coords[4], tex_coords[5],
+				starting_x, ending_y,   00, tex_coords[6], tex_coords[7]
+			});
+			
+			starting_x += screen_char_width * scale_factor;
 		}
+
+		glBindBuffer(GL_ARRAY_BUFFER, VBO);
+		glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data(), GL_STREAM_DRAW);
+
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER, text_size * 6 * sizeof(unsigned int), indices.data(), GL_STREAM_DRAW);
+
+		glDrawElements(GL_TRIANGLES, text_size*6, GL_UNSIGNED_INT, 0);
+
 		glEnable(GL_DEPTH_TEST);
 	}
 };
