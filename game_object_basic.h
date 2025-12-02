@@ -15,7 +15,25 @@ enum TextureType {
 };
 
 namespace Textures {
-	std::vector<unsigned int> bound_slots(16);
+	unsigned int bound_slots[16] = { -1 };
+	unsigned int get_index_of_bound_slot(unsigned int texture_id) 
+	{
+		for (unsigned int i = 0; i < 16; ++i) {
+			if (bound_slots[i] == texture_id) {
+				return i;
+			}
+		}
+		return -1;
+	}
+	unsigned int get_firs_empty_space()
+	{
+		for (unsigned int i = 0; i < 16; ++i) {
+			if (bound_slots[i] <= 0) {
+				return i;
+			}
+		}
+		return -1;
+	}
 }
 
 class game_object_basic_model
@@ -137,6 +155,7 @@ private:
 				glVertexAttribDivisor(attrib_start_index + i, loop_instance); // Update this attribute per instance
 			}
 			glBindVertexArray(0);
+
 		};
 	};
 
