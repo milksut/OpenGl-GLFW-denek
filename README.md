@@ -9,3 +9,4 @@
 
 - GLAD -> OpenGL fonksiyonlarının yüklenmesi
 
+- ASSİMP -> Dışarıdan modelleri yüklemeye yarayan kütüphane
