@@ -7,7 +7,7 @@
 #include "Headers\Shader.h"
 
 enum TextureType {
-	TEXTURE,
+	TEXTURE = 0,
 	DIFFUSE,
 	SPECULAR,
 	NORMAL,
@@ -15,7 +15,33 @@ enum TextureType {
 };
 
 namespace Textures {
-	unsigned int bound_slots[16] = { -1 };
+	unsigned int bound_slots[48] = { -1 };//active texture slots like GL_TEXTURE0,for index 0 means GL_TEXTURE0 and var is texture id
+	//most moders gpu can supprot more than 48 but 
+	//openGl 3.3 garantees minumum 48 texture units and its usualy enough for most cases
+	unsigned int slot_age[48] = { 0 };//to track usage age of slots for replacement if needed
+
+	void age_slots()
+	{
+		for (unsigned int i = 0; i < 48; ++i) {
+			if (bound_slots[i] != -1) {
+				slot_age[i]++;
+			}
+		}
+	}
+
+	unsigned int get_oldest_slot()
+	{
+		unsigned int oldest_index = 0;
+		unsigned int max_age = 0;
+		for (unsigned int i = 0; i < 48; ++i) {
+			if (slot_age[i] > max_age) {
+				max_age = slot_age[i];
+				oldest_index = i;
+			}
+		}
+		return oldest_index;
+	}
+
 	unsigned int get_index_of_bound_slot(unsigned int texture_id) 
 	{
 		for (unsigned int i = 0; i < 16; ++i) {
@@ -25,6 +51,7 @@ namespace Textures {
 		}
 		return -1;
 	}
+
 	unsigned int get_firs_empty_space()
 	{
 		for (unsigned int i = 0; i < 16; ++i) {
@@ -34,6 +61,40 @@ namespace Textures {
 		}
 		return -1;
 	}
+
+	void unbound_texture(unsigned int slot_index)
+	{
+		if (slot_index >= 0 && slot_index <48)
+		{
+			glActiveTexture(GL_TEXTURE0 + slot_index);
+			glBindTexture(GL_TEXTURE_2D, 0);
+			bound_slots[slot_index] = -1;
+			slot_age[slot_index] = 0;
+		}
+	}
+
+	unsigned int bound_texture(unsigned int texture_id)
+	{
+		unsigned int slot_index = get_index_of_bound_slot(texture_id);
+		if (slot_index != -1) {
+			// Texture is already bound, reset its age
+			slot_age[slot_index] = 0;
+			return slot_index;
+		}
+		slot_index = get_firs_empty_space();
+
+		if (slot_index == -1) {
+			// No available texture slots, replace the oldest one
+			slot_index = get_oldest_slot();
+			unbound_texture(slot_index);
+		}
+
+		glActiveTexture(GL_TEXTURE0 + slot_index);
+		glBindTexture(GL_TEXTURE_2D, texture_id);
+		bound_slots[slot_index] = texture_id;
+		slot_age[slot_index] = 0; // Reset age since it's just been used
+	}
+
 }
 
 class game_object_basic_model
@@ -157,6 +218,58 @@ private:
 			glBindVertexArray(0);
 
 		};
+		
+		void draw(Shader& shader)
+		{
+			std::vector<unsigned int> texture_textures;
+			std::vector<unsigned int> texture_diffuses;
+			std::vector<unsigned int> texture_speculars;
+			std::vector<unsigned int> texture_normals;
+			std::vector<unsigned int> texture_heights;
+			int counts[5] = {0,0,0,0,0};
+
+			for (unsigned int i = 0; i<48 && i < textures.size(); i++)
+			{
+				unsigned int slot_index = Textures::bound_texture(textures[i].id);
+
+				switch (textures[i].type)
+				{
+					case TEXTURE:
+						texture_textures.push_back(slot_index);
+						counts[TEXTURE]++;
+						break;
+
+					case DIFFUSE:
+						texture_diffuses.push_back(slot_index);
+						counts[DIFFUSE]++;
+						break;
+
+					case SPECULAR:
+						texture_speculars.push_back(slot_index);
+						counts[SPECULAR]++;
+						break;
+
+					case NORMAL:
+						texture_normals.push_back(slot_index);
+						counts[NORMAL]++;
+						break;
+
+					case HEIGHT:
+						texture_heights.push_back(slot_index);
+						counts[HEIGHT]++;
+						break;
+
+				default:
+					break;
+				}
+
+				//TODO: send data to shader
+			
+			}
+			glBindVertexArray(VAO);
+			glDrawElements(GL_TRIANGLES, static_cast<unsigned int>(indices.size()), GL_UNSIGNED_INT, 0);
+			glBindVertexArray(0);
+			glActiveTexture(GL_TEXTURE0);
 	};
 
 public:
