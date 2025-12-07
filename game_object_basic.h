@@ -6,7 +6,6 @@
 #include <array>
 #include <vector>
 #include <string>
-#include <glm/mat4x4.hpp>
 
 
 class game_object_basic_model
@@ -180,6 +179,14 @@ public:
 
 	std::vector<std::shared_ptr<Mesh>> Meshes;//you cant use copy constructor or assignment operator because of Mesh class
 	//so you need to manage meshes throut pointers becouse vectors copy elements when resized
+
+	void draw(Shader shader)
+	{
+		for(std::shared_ptr<Mesh> pointer : Meshes)
+		{
+			pointer->draw(shader);
+		}
+	}
 
 };
 
