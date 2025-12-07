@@ -1,8 +1,8 @@
 #include <thread>   // for std::this_thread::sleep_for
 #include <chrono>
 
-#include <glad/glad.h> 
-#include <glfw/glfw3.h>
+#include "Headers/Globals.h"
+
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -30,22 +30,6 @@ const float mouse_sensitivity = 0.3f;
 //	float     shininess;
 //};
 
-struct Light {
-	bool has_a_source;
-	glm::vec3 light_pos;
-	glm::vec3 light_target;
-
-	glm::vec3 ambient;
-	glm::vec3 diffuse;
-	glm::vec3 specular;
-
-	float cos_soft_cut_off_angle;
-	float cos_hard_cut_off_angle;
-
-	float constant;
-	float linear;
-	float quadratic;
-};
 
 
 Light light_source1 =

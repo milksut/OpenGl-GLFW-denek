@@ -1,7 +1,8 @@
 #pragma once
+
+#include "Headers/Globals.h"
+
 #include <iostream>
-#include <glad/glad.h> 
-#include <glfw/glfw3.h>
 #include "stb_image.h"
 
 unsigned int load_image(const char* image_path, int& width, int& height, int& nrChannels, const int packing = 4, const bool flip_vertically = true)

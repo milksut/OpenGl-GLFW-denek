@@ -1,6 +1,6 @@
-//#include <glad/glad.h> 
+//#include "Headers/Globals.h"
 //#include <iostream>
-//#include <glfw/glfw3.h>
+
 //
 //GLFWwindow* init_window(int width, int height, const char* window_name)
 //{

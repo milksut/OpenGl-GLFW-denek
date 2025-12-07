@@ -2,9 +2,8 @@
 #ifndef SHADER_H
 #define SHADER_H
 
-#include <glad/glad.h>
+#include "Headers/Globals.h"
 
-#include <string>
 #include <fstream>
 #include <sstream>
 #include <iostream>
@@ -88,14 +87,19 @@ public:
         glUniform1i(glGetUniformLocation(ID, name.c_str()), value);
     }
     // ------------------------------------------------------------------------
+    void setInt(const std::string& name, int value[], int amount) const
+    {
+        glUniform1iv(glGetUniformLocation(ID, name.c_str()), amount, value);
+    }
+    // ------------------------------------------------------------------------
     void setFloat(const std::string& name, float value) const
     {
         glUniform1f(glGetUniformLocation(ID, name.c_str()), value);
     }
-    //
+    // ------------------------------------------------------------------------
     void setFloat(const std::string& name, float value[], int amount) const
     {
-        glUniform1fv(glGetUniformLocation(ID, name.c_str()),amount ,value);
+        glUniform1fv(glGetUniformLocation(ID, name.c_str()), amount, value);
     }
     // ------------------------------------------------------------------------
     void setMatrix4fv(const std::string& name, const float* value) const

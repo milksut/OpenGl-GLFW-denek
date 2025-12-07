@@ -156,6 +156,7 @@
   <ItemGroup>
     <ClInclude Include="game_object_basic.h" />
     <ClInclude Include="Headers\Camera_test.h" />
+    <ClInclude Include="Headers\Globals.h" />
     <ClInclude Include="Headers\Shader.h" />
     <ClInclude Include="Headers\Some_functions.h" />
     <ClInclude Include="Headers\stb_image.h" />
