@@ -2,7 +2,7 @@
 #ifndef SHADER_H
 #define SHADER_H
 
-#include "Headers/Globals.h"
+#include "Globals.h"
 
 #include <fstream>
 #include <sstream>

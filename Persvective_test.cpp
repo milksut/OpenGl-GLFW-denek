@@ -1,16 +1,16 @@
 #include <thread>   // for std::this_thread::sleep_for
 #include <chrono>
 
-#include "Headers/Globals.h"
+#include "Globals.h"
 
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
-#include "Headers\stb_image.h"
+#include "stb_image.h"
 
-#include "Headers\Shader.h"
-#include "Headers\Camera_test.h"
-#include "Headers\Some_functions.h"
-#include "Headers\TextRenderer.h"
+#include "Shader.h"
+#include "Camera_test.h"
+#include "Some_functions.h"
+#include "TextRenderer.h"
 
 const double Target_fps = 144;
 const double Target_frame_time = 1.0 / Target_fps;
@@ -468,7 +468,7 @@ int main()
 		glBindVertexArray(VAO_light);
 		light_source_shader.setVec3("ourColor", light_source1.diffuse);
 
-		model = glm::rotate(model, glm::radians(0.25f) , glm::vec3(0.0f, 1.0f, 0.0f));
+		model = glm::rotate(model, glm::radians(2.5f * (float)((glfwGetTime() - time_of_last_frame) / Target_frame_time)) , glm::vec3(0.0f, 1.0f, 0.0f));
 		light_source1.light_pos = model * glm::vec4(light_source1.light_pos,1.0f);
 
 		model = glm::mat4(1.0f);

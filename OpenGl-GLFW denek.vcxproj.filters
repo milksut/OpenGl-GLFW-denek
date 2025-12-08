@@ -53,10 +53,10 @@
     <ClInclude Include="Headers\stb_image.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="game_object_basic.h">
+    <ClInclude Include="Headers\Globals.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\Globals.h">
+    <ClInclude Include="Headers\game_object_basic.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

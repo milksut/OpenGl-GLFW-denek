@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Headers/Globals.h"
-#include "Headers/Shader.h"
+#include "Shader.h"
+#include "Globals.h"
 
 #include <array>
 #include <vector>

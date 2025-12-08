@@ -1,6 +1,6 @@
 #pragma once
-#include "Headers\Shader.h"
-#include "Headers/Globals.h"
+#include "Shader.h"
+#include "Globals.h"
 
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -8,7 +8,7 @@
 #include <fstream>
 #include <unordered_map>
 
-#include "Headers\Some_functions.h"
+#include "Some_functions.h"
 class TextRenderer
 {
 private:

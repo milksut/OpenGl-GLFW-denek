@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Headers/Globals.h"
+#include "Globals.h"
 
 #include <glm/gtc/matrix_transform.hpp>
 class camera_test

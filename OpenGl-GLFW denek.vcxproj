@@ -71,11 +71,11 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>$(ProjectDir)\includes-libs\includes;$(IncludePath)</IncludePath>
+    <IncludePath>$(ProjectDir)includes-libs\includes;$(ProjectDir)Headers;$(IncludePath)</IncludePath>
     <LibraryPath>$(ProjectDir)\includes-libs\Lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>$(ProjectDir)\includes-libs\includes;$(IncludePath)</IncludePath>
+    <IncludePath>$(ProjectDir)includes-libs\includes;$(ProjectDir)Headers;$(IncludePath)</IncludePath>
     <LibraryPath>$(ProjectDir)\includes-libs\Lib;$(LibraryPath)</LibraryPath>
     <LinkIncremental>true</LinkIncremental>
   </PropertyGroup>
@@ -154,8 +154,8 @@
     <ClCompile Include="stb_implementation.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="game_object_basic.h" />
     <ClInclude Include="Headers\Camera_test.h" />
+    <ClInclude Include="Headers\game_object_basic.h" />
     <ClInclude Include="Headers\Globals.h" />
     <ClInclude Include="Headers\Shader.h" />
     <ClInclude Include="Headers\Some_functions.h" />

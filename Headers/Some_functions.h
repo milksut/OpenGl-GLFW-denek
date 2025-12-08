@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Headers/Globals.h"
+#include "Globals.h"
 
 #include <iostream>
 #include "stb_image.h"
