@@ -72,11 +72,11 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <IncludePath>$(ProjectDir)includes-libs\includes;$(ProjectDir)Headers;$(IncludePath)</IncludePath>
-    <LibraryPath>$(ProjectDir)\includes-libs\Lib;$(LibraryPath)</LibraryPath>
+    <LibraryPath>$(ProjectDir)\includes-libs\Libs-Debug;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <IncludePath>$(ProjectDir)includes-libs\includes;$(ProjectDir)Headers;$(IncludePath)</IncludePath>
-    <LibraryPath>$(ProjectDir)\includes-libs\Lib;$(LibraryPath)</LibraryPath>
+    <LibraryPath>$(ProjectDir)\includes-libs\Libs-Release;$(LibraryPath)</LibraryPath>
     <LinkIncremental>true</LinkIncremental>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -115,7 +115,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>glfw3.lib;opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>zlibstaticd.lib;assimp-vc143-mtd.lib;glfw3.lib;opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>xcopy /Y /D "$(ProjectDir)\includes-libs\dll\*.dll" "$(OutDir)"</Command>
@@ -136,7 +136,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>glfw3.lib;opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>zlibstatic.lib;assimp-vc143-mt.lib;glfw3.lib;opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>xcopy /Y /D "$(ProjectDir)\includes-libs\dll\*.dll" "$(OutDir)"</Command>
@@ -148,6 +148,7 @@
   <ItemGroup>
     <ClCompile Include="glad.c" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="model_loading_test.cpp" />
     <ClCompile Include="my_first_triangle.cpp" />
     <ClCompile Include="Persvective_test.cpp" />
     <ClCompile Include="Shader_tester.cpp" />

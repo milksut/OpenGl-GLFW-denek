@@ -14,6 +14,7 @@
 #include <glfw/glfw3.h>
 #include <glm/glm.hpp>
 #include <string>
+#include <vector>
 //end of includes---------------------------------------------------------------------------------
 
 
@@ -21,15 +22,13 @@
 //X-Macros----------------------------------------------------------------------------------------
 	//TEX_TYPE MACRO------------------------------------------------------------------------------
 	#define TEX_TYPES \
-		X(TEXTURE) \
-		X(DIFFUSE) \
-		X(SPECULAR) \
-		X(NORMAL) \
-		X(HEIGHT)
+		X(DIFFUSE , aiTextureType_DIFFUSE) \
+		X(NORMAL , aiTextureType_NORMALS) \
+		X(SPECULAR , aiTextureType_SPECULAR) \
 
 	enum TextureType
 	{
-		#define X(name) name,
+		#define X(name, assimp_name) name,
 		TEX_TYPES
 		#undef X
 
@@ -38,24 +37,78 @@
 
 	static const std::string Tex_Types_Names[] = 
 	{
-		#define X(name) #name,
+		#define X(name, assimp_name) #name,
 		TEX_TYPES
 		#undef X
 	};
+
 	//end of TEX_TYPE MACRO-----------------------------------------------------------------------
 //end of X-Macros---------------------------------------------------------------------------------
 
 
 
+//Structs----------------------------------------------------------------------------------------
+struct Texture {
+	unsigned int id;
+	TextureType type;
+	std::string path;
+};
+
+struct Light {
+	bool has_a_source;
+	glm::vec3 light_pos;
+	glm::vec3 light_target;
+
+	glm::vec3 ambient;
+	glm::vec3 diffuse;
+	glm::vec3 specular;
+
+	float cos_soft_cut_off_angle;
+	float cos_hard_cut_off_angle;
+
+	float constant;
+	float linear;
+	float quadratic;
+};
+
+//end of structs---------------------------------------------------------------------------------
+
+
+
 //Namespaces--------------------------------------------------------------------------------------
 namespace Texture_slots {
+	std::vector<Texture> loaded_textures; //to avoid loading duplicated textures, inclues all textures bound or unbound.
+
 	unsigned int bound_slots[TEXTURE_SLOTS] = { 0 };//active texture slots like GL_TEXTURE0,for index 0 means GL_TEXTURE0 and var is texture id
 
 	unsigned int slot_age[TEXTURE_SLOTS] = { 0 };//to track usage age of slots for replacement if needed
 
+	void new_texture_loaded(Texture texture)
+	{
+		if(loaded_textures.capacity()<100)
+			loaded_textures.reserve(100);
+
+
+		loaded_textures.push_back(texture);
+	}
+
+	Texture* get_loaded_texture(const std::string& path)
+	{
+		for (Texture& tex : loaded_textures)
+		{
+			if (tex.path == path)
+			{
+				return &tex;
+			}
+		}
+		return nullptr;
+		
+	}
+
 	void age_slots()
 	{
-		for (int i = 0; i < TEXTURE_SLOTS; ++i) {
+		slot_age[0] += bound_slots[0] <= 0 ? 0 : 2; //becouse slot 0 is mostly used during other texture bindings we try to free it as much as possible
+		for (int i = 1; i < TEXTURE_SLOTS; ++i) {
 			if (bound_slots[i] != 0) {
 				slot_age[i]++;
 			}
@@ -85,9 +138,9 @@ namespace Texture_slots {
 		return -1;
 	}
 
-	int get_firs_empty_space()
+	int get_last_empty_space()//becouse slot 0 is mostly used during other texture bindings we start searching from last slot
 	{
-		for (int i = 0; i < TEXTURE_SLOTS; ++i) {
+		for (int i = TEXTURE_SLOTS - 1; i >= 0; --i) {
 			if (bound_slots[i] <= 0) {
 				return i;
 			}
@@ -114,9 +167,10 @@ namespace Texture_slots {
 			slot_age[slot_index] = 0;
 			return slot_index;
 		}
-		slot_index = get_firs_empty_space();
+		slot_index = get_last_empty_space();
 
-		if (slot_index == -1) {
+		if (slot_index == -1)
+		{
 			// No available texture slots, replace the oldest one
 			slot_index = get_oldest_slot();
 			unbound_texture(slot_index);
@@ -130,30 +184,3 @@ namespace Texture_slots {
 
 }
 //end of namespaces-------------------------------------------------------------------------------
-
-
-
-//Structs----------------------------------------------------------------------------------------
-struct Texture {
-	unsigned int id;
-	TextureType type;
-};
-
-struct Light {
-	bool has_a_source;
-	glm::vec3 light_pos;
-	glm::vec3 light_target;
-
-	glm::vec3 ambient;
-	glm::vec3 diffuse;
-	glm::vec3 specular;
-
-	float cos_soft_cut_off_angle;
-	float cos_hard_cut_off_angle;
-
-	float constant;
-	float linear;
-	float quadratic;
-};
-
-//end of structs---------------------------------------------------------------------------------
