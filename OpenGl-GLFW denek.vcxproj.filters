@@ -37,7 +37,7 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="model_loading_test.cpp">
-      <Filter>Header Files</Filter>
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -92,6 +92,12 @@
       <Filter>Source Files\shaders</Filter>
     </None>
     <None Include="Shaders\Vertex_shaders\Light_MVP_texture_vertex.vert">
+      <Filter>Source Files\shaders</Filter>
+    </None>
+    <None Include="Shaders\Vertex_shaders\Loaded_model_vertex.vert">
+      <Filter>Source Files\shaders</Filter>
+    </None>
+    <None Include="Shaders\Fragment_shaders\Loaded_model_fragment.frag">
       <Filter>Source Files\shaders</Filter>
     </None>
   </ItemGroup>

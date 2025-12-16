@@ -22,13 +22,13 @@
 //X-Macros----------------------------------------------------------------------------------------
 	//TEX_TYPE MACRO------------------------------------------------------------------------------
 	#define TEX_TYPES \
-		X(DIFFUSE , aiTextureType_DIFFUSE) \
-		X(NORMAL , aiTextureType_NORMALS) \
-		X(SPECULAR , aiTextureType_SPECULAR) \
+		X(DIFFUSE , aiTextureType_DIFFUSE, aiTextureType_BASE_COLOR) \
+		X(NORMAL , aiTextureType_NORMALS, aiTextureType_NONE) \
+		X(SPECULAR , aiTextureType_SPECULAR, aiTextureType_NONE) \
 
 	enum TextureType
 	{
-		#define X(name, assimp_name) name,
+		#define X(name, assimp_name, second_assimp_name) name,
 		TEX_TYPES
 		#undef X
 
@@ -37,7 +37,7 @@
 
 	static const std::string Tex_Types_Names[] = 
 	{
-		#define X(name, assimp_name) #name,
+		#define X(name, assimp_name, second_assimp_name) #name,
 		TEX_TYPES
 		#undef X
 	};

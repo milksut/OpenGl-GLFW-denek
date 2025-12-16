@@ -13,7 +13,14 @@
 
 static const aiTextureType Assimp_Tex_Types[] =
 {
-	#define X(name,assimp_name) assimp_name,
+	#define X(name,assimp_name, second_assimp_name) assimp_name,
+	TEX_TYPES
+	#undef X
+};
+
+static const aiTextureType Assimp_Tex_Types_2[] =
+{
+	#define X(name,assimp_name, second_assimp_name) second_assimp_name,
 	TEX_TYPES
 	#undef X
 };
@@ -60,6 +67,13 @@ private:
 			}
 
 			glActiveTexture(GL_TEXTURE0);
+
+			//for (int i = 0; i < Tex_type_amount; i++)
+			//{
+			//	printf(Tex_Types_Names[i].c_str());
+			//	printf(" count: %d\n", counts[i]);
+			//}
+			
 
 		}
 
@@ -208,25 +222,26 @@ private:
 	};
 
 
-	void process_node(aiNode* node, const aiScene* scene, Mesh_Childs& parent_mesh)
+	void process_node(aiNode* node, const aiScene* scene, Mesh_Childs& parent_mesh,const std::string& path)
 	{
 		//process meshes of node
 		for (unsigned int i = 0; i < node->mNumMeshes; i++)
 		{
 			aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
 			//process mesh
-			Meshes.push_back(process_mesh(mesh, scene));
+			Meshes.push_back(process_mesh(mesh, scene, path));
+			printf("Processed mesh: %s\n", mesh->mName.C_Str());
 		}
 		//process childs
 		for (unsigned int i = 0; i < node->mNumChildren; i++)
 		{
 			Mesh_Childs child_mesh;
 			parent_mesh.Childs.push_back(child_mesh);
-			process_node(node->mChildren[i], scene, child_mesh);
+			process_node(node->mChildren[i], scene, child_mesh, path);
 		}
 	}
 
-	std::shared_ptr<Mesh> process_mesh(aiMesh* mesh, const aiScene* scene)
+	std::shared_ptr<Mesh> process_mesh(aiMesh* mesh, const aiScene* scene,const std::string& path)
 	{
 		std::vector<vertex_data> vertices;
 		std::vector<unsigned int> indices;
@@ -276,18 +291,22 @@ private:
 		if (mesh->mMaterialIndex >= 0)
 		{
 			aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
-			for (int i = 0; i < Tex_type_amount; i++)
+			bool loop = true;
+			for (int i = 0; i < Tex_type_amount; loop = !loop)
 			{
-				aiTextureType assimp_type = Assimp_Tex_Types[i];
-
+				aiTextureType assimp_type = loop ? Assimp_Tex_Types[i] : Assimp_Tex_Types_2[i];
+				
 				for(int j = 0; j < material->GetTextureCount(assimp_type); j++)
 				{
 					Texture* texture;
 					aiString str;
-					int unused_data = 0; // data returned by load_image but unused here
+					int unused_data1 = 0, unused_data2 = 0, unused_data3 = 0; // data returned by load_image but unused here
 
 					//assimp_type - Texture type, j - Index of the texture to get, &str - output path
 					material->GetTexture(assimp_type, j, &str);
+
+					std::string directory = path.substr(0, path.find_last_of('\\'));
+					str.Set((directory + '\\' + str.C_Str()).c_str());
 
 					texture = Texture_slots::get_loaded_texture(str.C_Str());//check if texture was loaded before
 					if(texture != nullptr)
@@ -296,11 +315,9 @@ private:
 					}
 					else
 					{
-						
-					
 						texture = new Texture();
 
-						texture->id = load_image(str.C_Str(),unused_data,unused_data,unused_data);
+						texture->id = load_image(str.C_Str(),unused_data1,unused_data2,unused_data3);
 						texture->type = static_cast<TextureType>(i);
 						texture->path = str.C_Str();
 
@@ -308,6 +325,8 @@ private:
 						Texture_slots::loaded_textures.push_back(*texture);
 					}
 				}
+				
+				if (!loop) i++;
 			}
 
 		}
@@ -376,8 +395,9 @@ public:
 		}
 		else
 		{
-			process_node(scene->mRootNode, scene, root);
+			process_node(scene->mRootNode, scene, root,path);
 		}
+
 	}
 };
 

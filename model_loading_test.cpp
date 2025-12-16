@@ -171,10 +171,10 @@ int main()
 	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 	glfwSetCursorPosCallback(window, mouse_callback);
 
-	Shader shader("Shaders\\Vertex_shaders\\Basic_vertex.vert","Shaders\\Fragment_shaders\\Black_fragment.frag");
+	Shader shader("Shaders\\Vertex_shaders\\Loaded_model_vertex.vert","Shaders\\Fragment_shaders\\Loaded_model_fragment.frag");
 
 	game_object_basic_model backpack;
-	backpack.import_model_from_file("C:\\Users\\altay\\Desktop\\pull_from_this\\Survival_BackPack_2.fbx");
+	backpack.import_model_from_file("C:\\Users\\altay\\Desktop\\pull_from_this_easy\\Backpack.obj");
 
 	glEnable(GL_DEPTH_TEST); // Enable depth testing for 3D rendering
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
@@ -182,6 +182,8 @@ int main()
 	double time_of_last_frame = 1;
 	std::string fps_text = "";
 	glfwSetTime(0.0);
+
+
 	while (!glfwWindowShouldClose(window))
 	{
 
@@ -190,6 +192,10 @@ int main()
 
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		shader.use();
+		shader.setMatrix4fv("view", glm::value_ptr(camera.get_view_matrix()));
+		shader.setMatrix4fv("projection", glm::value_ptr(camera.projection));
 
 		backpack.draw(shader);
 
