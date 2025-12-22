@@ -39,7 +39,30 @@ private:
 	class Mesh
 	{
 	private:
-		std::vector<unsigned int> instance_VBOs;
+		
+		struct attribute
+		{
+			unsigned int VBO;
+			int attrib_start_index;
+			int attrib_fin_index;
+			unsigned int attrib_size_bytes;
+			int loop_instance;
+		};
+
+		attribute empty_attrib = { 0,-1,-1,0,-1 };
+
+		std::vector<attribute> instance_attributes;
+
+		struct class_region //regions given to classes and data inside them
+		{
+			int offset_in_numbers;//how many meshes can be drawn before this region
+			int size_in_number;//how many meshes can be drawn using this region
+
+			std::vector<std::shared_ptr<float>> data_ptrs;//datas for this region, vector index -> attribute index, and pointer for data
+			std::vector<unsigned int> data_amount;//amount of floats in data_ptr
+		};
+
+		std::vector<std::shared_ptr<class_region>> shared_regions;
 
 		void bind_textures(Shader shader)
 		{
@@ -76,6 +99,42 @@ private:
 			
 
 		}
+		
+		void delete_instance_buffer(int attrib_index)
+		{
+			if (attrib_index >= VAO_MAX_ATTRIB_AMOUNT || attrib_index <= 2)
+				return; // Invalid or mesh's attribute index
+
+			attribute attrib = instance_attributes[attrib_index];
+			if (attrib.VBO == 0)
+				return; // No instance buffer to delete
+
+			glBindVertexArray(VAO);
+			
+			glDeleteBuffers(1, &attrib.VBO);
+
+			for (int i = attrib.attrib_start_index; i <= attrib.attrib_fin_index; i++)
+			{
+				instance_attributes[i] = empty_attrib;
+
+				glDisableVertexAttribArray(i);
+				glVertexAttribDivisor(i, 0); // Reset divisor
+			}
+
+			glBindBuffer(GL_ARRAY_BUFFER, 0);
+			glBindVertexArray(0);
+		}
+
+		void calc_offset_in_number()
+		{
+			int offset = 0;
+			for (std::shared_ptr<class_region> region : shared_regions)
+			{
+				region->offset_in_numbers = offset;
+				offset += region->size_in_number;
+			}
+		}
+
 
 	public:
 		std::vector<vertex_data>  vertices;
@@ -85,7 +144,7 @@ private:
 		unsigned int VAO, VBO_Mesh, EBO;
 
 		Mesh(std::vector<vertex_data> &vertices, std::vector<unsigned int> &indices, std::vector<Texture>& textures)
-			:instance_VBOs(VAO_MAX_ATTRIB_AMOUNT-3, 0), vertices(vertices), indices(indices), textures(textures)
+			:instance_attributes(VAO_MAX_ATTRIB_AMOUNT, empty_attrib), vertices(vertices), indices(indices), textures(textures)
 		{
 
 			glGenVertexArrays(1, &VAO);
@@ -104,13 +163,17 @@ private:
 			// vertex positions
 			glEnableVertexAttribArray(0);
 			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(vertex_data), (void*)0);
+			instance_attributes[0] = { VBO_Mesh,0,0,3,0 };
+
 			// vertex texture coords
 			glEnableVertexAttribArray(1);
 			glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(vertex_data), (void*)offsetof(vertex_data, tex_coords));
+			instance_attributes[0] = { VBO_Mesh,1,1,2,0 };
+
 			// vertex  normals
 			glEnableVertexAttribArray(2);
 			glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(vertex_data), (void*)offsetof(vertex_data, normal));
-
+			instance_attributes[0] = { VBO_Mesh,2,2,3,0 };
 			glBindVertexArray(0);
 		}
 
@@ -119,83 +182,143 @@ private:
 			glDeleteBuffers(1, &VBO_Mesh);
 			glDeleteBuffers(1, &EBO);
 
-			for (auto id : instance_VBOs)
-				if (id) glDeleteBuffers(1, &id);
+			for (attribute id : instance_attributes)
+				if (id.VBO) glDeleteBuffers(1, &id.VBO);
 			
 			glDeleteVertexArrays(1, &VAO);
 
 			textures.clear();
+
+			for(std::shared_ptr<class_region> ptr : shared_regions)
+			{
+				ptr.reset();
+			}
 		}
 
 		Mesh(const Mesh&) = delete;// Delete copy constructor
 
 		Mesh& operator=(const Mesh&) = delete;// Delete copy assignment operator
 
-		//add vec instance buffer for instanced rendering
-
-		///use this function to add extra per-instance attributes like colors,
-		///its size must be float vector of max attribute size 4,
-		///most of the time you have max of 16 attrib indexs per vao, 0-1-2 are used by mesh,
-		///this function uses 1 attrib index,
-		///you should have enough vectors for amoun you wanna draw,
-		/// if you have more no problem, if you have less than you get undefined behevior
-		void add_vec_instance_buffer(std::vector<float>& extra_data, int attrib_size, int attrib_index, int loop_instance = 1)
+		std::shared_ptr<class_region> reserve_class_region(int size_in_number)
 		{
-			if (attrib_size < 1 || attrib_size >4)
-				return; // Invalid attribute size
+			std::shared_ptr<class_region> region = std::make_shared<class_region>();
+			region->size_in_number = size_in_number;
+			region->data_ptrs = std::vector<std::shared_ptr<float>>(VAO_MAX_ATTRIB_AMOUNT, nullptr);
+			region->data_amount = std::vector<unsigned int>(VAO_MAX_ATTRIB_AMOUNT, 0);
+			shared_regions.push_back(region);
 
+			calc_offset_in_number();
+
+			//TODO: resize VBOS and re upload data
+
+			return region;
+		}
+
+		void load_all_regions_for_attribute(int attrib_index)
+		{
 			if (attrib_index >= VAO_MAX_ATTRIB_AMOUNT || attrib_index <= 2)
 				return; // Invalid or mesh's attribute index
 
-			if (instance_VBOs[attrib_index - 3] == 0)
+			attribute attrib = instance_attributes[attrib_index];
+			if (attrib.VBO == 0)
+				return; // No instance buffer exists for this attribute
+
+			glBindBuffer(GL_ARRAY_BUFFER, attrib.VBO);
+
+			for (std::shared_ptr<class_region> region : shared_regions)
 			{
-				glGenBuffers(1, &instance_VBOs[attrib_index - 3]);
+				// Check if this region has data for this attribute
+				if (region->data_ptrs[attrib_index] == nullptr)
+					continue;
+				if (region->data_amount[attrib_index] == 0)
+					continue;
+
+				// Calculate offset in bytes
+				unsigned int offset_bytes = region->offset_in_numbers * attrib.attrib_size_bytes;
+				unsigned int size_bytes = region->data_amount[attrib_index] * sizeof(float);
+
+				// Upload the data
+				glBufferSubData(GL_ARRAY_BUFFER, offset_bytes, size_bytes, region->data_ptrs[attrib_index].get());
 			}
 
-			glBindVertexArray(VAO);
-			glBindBuffer(GL_ARRAY_BUFFER, instance_VBOs[attrib_index - 3]);
-			glBufferData(GL_ARRAY_BUFFER, extra_data.size() * sizeof(float), &extra_data[0], GL_STATIC_DRAW);
+			glBindBuffer(GL_ARRAY_BUFFER, 0);
+		}
+		
+		//add instance buffer for instanced rendering
 
-			glEnableVertexAttribArray(attrib_index);
-			glVertexAttribPointer(attrib_index, attrib_size, GL_FLOAT, GL_FALSE, attrib_size * sizeof(float), (void*)0);
-			glVertexAttribDivisor(attrib_index, loop_instance); // Update this attribute per instance
+		///use this function to add extra per-instance attributes like colors,model matrices etc.
+		///it will crate a buffer of given size for every class_region known to this mesh
+		///this function only crates buffers, to load data use function load_instance_buffer
+		///if you want to expand a previously created buffer, use expand_instance_buffer
+		///most of the time you have max of 16 attrib indexs per vao, 0-1-2 are used by mesh,
+		///You can have 4 attribs(floats) per index, after 4 it crates another index
+		///you should have enough vectors for amount you wanna draw,
+		///if you have more no problem, if you have less than you get undefined behevior
+		int add_instance_buffer(int attrib_size, int attrib_index, int loop_instance = 1)
+		{
+			if(shared_regions.empty())
+				return -1; //no regions to create buffer for
+
+			if (instance_attributes[attrib_index].VBO != 0)
+				return -1; //attribute already filled
+
+			int index_amount = (attrib_size / 4) + (attrib_size%4 ==0? 0:1);
+
+			if (attrib_index + index_amount -1  >= VAO_MAX_ATTRIB_AMOUNT || attrib_index <= 2)
+				return -1; // Invalid or mesh's attribute index
+			
+			int wanted_amount = shared_regions.back()->offset_in_numbers + shared_regions.back()->size_in_number;
+
+			unsigned int attrib_size_bytes = (attrib_size * (unsigned int)sizeof(float));
+			
+			unsigned int VBO_TEMP;
+			glGenBuffers(1, &VBO_TEMP);
+			
+			glBindVertexArray(VAO);
+			glBindBuffer(GL_ARRAY_BUFFER, VBO_TEMP);
+			glBufferData(GL_ARRAY_BUFFER, attrib_size_bytes * wanted_amount, nullptr, GL_DYNAMIC_DRAW);
+			
+			for(int i = 0; i< index_amount; i++)
+			{
+				instance_attributes[attrib_index + i] = { VBO_TEMP,attrib_index,attrib_index + index_amount -1,attrib_size_bytes , loop_instance };
+				glEnableVertexAttribArray(attrib_index + i);
+
+				//glVertexAttribPointer(attrib_index + i, 4, GL_FLOAT, GL_FALSE, attrib_size * sizeof(float), (void*)(i * sizeof(glm::vec4)));
+				//i am transitioning to slicing vbo spaces and giving classes their own offsets
+				//so they can call it with that ofsset (givving offset to attrip pointer)
+
+				glVertexAttribDivisor(attrib_index + i, loop_instance); // Update this attribute per instance
+			}
 
 			glBindVertexArray(0);
+
+			load_all_regions_for_attribute(attrib_index);
+
+			return 0;
 		}
 
-		//add mat4 instance buffer for instanced rendering
+		//TODO: expand_instance_buffer to expand previously created buffer
 
-		///use this function to add extra per-instance attributes like model matrices,
-		///most of the time you have max of 16 attrib indexs per vao, 0-1-2 are used by mesh,
-		///it uses 4 attrib index,
-		///you should have enough vectors for amoun you wanna draw,
-		///if you have more no problem, if you have less than you get undefined behevior
-		void add_mat4_instance_buffer(std::vector<glm::mat4>& extra_data, int attrib_start_index, int loop_instance = 1)
+		void load_instance_buffer(float* data, unsigned int amount_in_attrib_size, int attrib_index,
+			std::shared_ptr<class_region> region, float data_offset_by_attrib_size = 0)
 		{
-			if (attrib_start_index >= VAO_MAX_ATTRIB_AMOUNT-4 || attrib_start_index <= 2)
+			if (attrib_index >= VAO_MAX_ATTRIB_AMOUNT || attrib_index <= 2)
 				return; // Invalid or mesh's attribute index
 
-			if (instance_VBOs[attrib_start_index-3] == 0)
-			{
-				glGenBuffers(1, &instance_VBOs[attrib_start_index-3]);
-				instance_VBOs[attrib_start_index - 2] = instance_VBOs[attrib_start_index-3];
-				instance_VBOs[attrib_start_index - 1] = instance_VBOs[attrib_start_index-3];
-				instance_VBOs[attrib_start_index] = instance_VBOs[attrib_start_index-3];
-			}
+			attribute attrib = instance_attributes[attrib_index];
+			if (attrib.VBO == 0)
+				return; // No instance buffer to load data
 
-			glBindVertexArray(VAO);
-			glBindBuffer(GL_ARRAY_BUFFER, instance_VBOs[attrib_start_index]);
-			glBufferData(GL_ARRAY_BUFFER, extra_data.size() * sizeof(glm::mat4), &extra_data[0], GL_STATIC_DRAW);
-			// A mat4 takes up 4 attribute slots
-			for (int i = 0; i < 4; i++) {
-				glEnableVertexAttribArray(attrib_start_index + i);
-				glVertexAttribPointer(attrib_start_index + i, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void*)(i * sizeof(glm::vec4)));  // Stride between matrices
-				glVertexAttribDivisor(attrib_start_index + i, loop_instance); // Update this attribute per instance
-			}
-			glBindVertexArray(0);
+			if(amount_in_attrib_size + data_offset_by_attrib_size > region->size_in_number)
+				return; // Trying to load more data than region size
 
-		};
-		
+			glBindBuffer(GL_ARRAY_BUFFER, attrib.VBO);
+			glBufferSubData(GL_ARRAY_BUFFER, (region->offset_in_numbers + data_offset_by_attrib_size) * attrib.attrib_size_bytes,
+				amount_in_attrib_size * attrib.attrib_size_bytes, data);
+			glBindBuffer(GL_ARRAY_BUFFER, 0);
+		}
+
+		//TODO: request class offset and use it with attrip pointers
 		void draw(Shader& shader)
 		{
 			bind_textures(shader);
@@ -220,7 +343,6 @@ private:
 		std::vector<std::shared_ptr<Mesh>> Meshes;
 		std::vector<Mesh_Childs> Childs;
 	};
-
 
 	void process_node(aiNode* node, const aiScene* scene, Mesh_Childs& parent_mesh,const std::string& path)
 	{
@@ -357,33 +479,20 @@ public:
 	}
 
 
-	///use this function to add extra per-instance attributes like colors,
-	///its size must be float vector of max attribute size 4,
-	///most of the time you have max of 16 attrib indexs per vao, 0-1-2 are used by mesh,
-	///this function uses 1 attrib index,
-	///you should have enough vectors for amoun you wanna draw,
-	/// if you have more no problem, if you have less than you get undefined behevior
-	void add_vec_instance_buffer(std::vector<float>& extra_data, int attrib_size, int attrib_index, int loop_instance = 1)
-	{
-		for (std::shared_ptr<Mesh> pointer : Meshes)
-		{
-			pointer->add_vec_instance_buffer(extra_data, attrib_size, attrib_index, loop_instance);
-		}
-	}
-
-
-	///use this function to add extra per-instance attributes like model matrices,
-	///most of the time you have max of 16 attrib indexs per vao, 0-1-2 are used by mesh,
-	///it uses 4 attrib index,
-	///you should have enough vectors for amoun you wanna draw,
-	///if you have more no problem, if you have less than you get undefined behevior
-	void add_mat4_instance_buffer(std::vector<glm::mat4>& extra_data, int attrib_start_index, int loop_instance = 1)
-	{
-		for (std::shared_ptr<Mesh> pointer : Meshes)
-		{
-			pointer->add_mat4_instance_buffer(extra_data, attrib_start_index, loop_instance);
-		}
-	}
+	/////use this function to add extra per-instance attributes like colors,model matrices etc.
+	/////this function only crates buffers, to load data use function load_instance_buffer
+	/////if you want to expand a previously created buffer, this function clears the area first so load all the data back after this
+	/////most of the time you have max of 16 attrib indexs per vao, 0-1-2 are used by mesh,
+	/////You can have 4 attribs per index, after 4 it crates another index
+	/////you should have enough vectors for amount you wanna draw,
+	/////if you have more no problem, if you have less than you get undefined behevior
+	//void add_instance_buffer(unsigned int buffer_size_bytes, int attrib_size, int attrib_index, int loop_instance = 1)
+	//{
+	//	for (std::shared_ptr<Mesh> pointer : Meshes)
+	//	{
+	//		pointer->add_instance_buffer(buffer_size_bytes, attrib_size, attrib_index, loop_instance);
+	//	}
+	//}
 
 	void import_model_from_file(std::string path)
 	{

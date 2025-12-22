@@ -5,6 +5,9 @@
 //openGl 3.3 garantees minumum 48 texture units and its usualy enough for most cases
 
 #define VAO_MAX_ATTRIB_AMOUNT 16 //max attrib indexs per vaos
+
+#define OPENGL_VERSION_MAJOR 3
+#define OPENGL_VERSION_MINOR 3
 //end of defines---------------------------------------------------------------------------------
 
 
