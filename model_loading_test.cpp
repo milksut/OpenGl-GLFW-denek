@@ -174,7 +174,29 @@ int main()
 	Shader shader("Shaders\\Vertex_shaders\\Loaded_model_vertex.vert","Shaders\\Fragment_shaders\\Loaded_model_fragment.frag");
 
 	game_object_basic_model backpack;
-	backpack.import_model_from_file("C:\\Users\\altay\\Desktop\\pull_from_this_easy\\Backpack.obj");
+	//backpack.import_model_from_file("C:\\Users\\altay\\Desktop\\pull_from_this_easy\\Backpack.obj");
+	backpack.import_model_from_file("C:\\Users\\altay\\Desktop\\Tree1.obj");
+	
+	//-*-*-*-*-*-*-*-**-*-*-*-*-**-*-*-*-*-*-*-*-*-*-*-*-*-*-*-**-*-*-*-*-*-*-*-*
+	int amount_drawn = 30000;
+	//-*-*-*-*-*-*-*-**-*-*-*-*-**-*-*-*-*-*-*-*-*-*-*-*-*-*-*-**-*-*-*-*-*-*-*-*
+
+	std::shared_ptr<class_region> region = backpack.reserve_class_region(amount_drawn);
+
+	backpack.add_instance_buffer(16, 3); //attrib size-mat4-16floats, attrib index
+
+	
+
+	std::vector<glm::mat4> model_matrices;
+	for (int i = 0; i < amount_drawn; i++)
+	{
+		glm::mat4 model = glm::mat4(1.0f);
+		model = glm::translate(model, glm::vec3(i * 3.0f, 0.0f, -5.0f));
+		model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));
+		model_matrices.push_back(model);
+	}
+
+	backpack.load_instance_buffer((float*)model_matrices.data(), model_matrices.size(), 3, region);
 
 	glEnable(GL_DEPTH_TEST); // Enable depth testing for 3D rendering
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
@@ -182,7 +204,6 @@ int main()
 	double time_of_last_frame = 1;
 	std::string fps_text = "";
 	glfwSetTime(0.0);
-
 
 	while (!glfwWindowShouldClose(window))
 	{
@@ -197,7 +218,8 @@ int main()
 		shader.setMatrix4fv("view", glm::value_ptr(camera.get_view_matrix()));
 		shader.setMatrix4fv("projection", glm::value_ptr(camera.projection));
 
-		backpack.draw(shader);
+		backpack.draw(shader, region , amount_drawn);
+		checkGLError("After drawing backpack");
 
 		x++;
 		if (glfwGetTime() - z >= 1.0f)
@@ -206,6 +228,8 @@ int main()
 			x = 0;
 			z = glfwGetTime();
 			fps_text = "FPS: " + std::to_string(y);
+			printf("Draw calls per second : %d\n",draw_call_count);
+			draw_call_count = 0;
 		}
 		printer->render_text(fps_text, -1, 0.9, 2.0f);
 

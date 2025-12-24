@@ -53,15 +53,6 @@ private:
 
 		std::vector<attribute> instance_attributes;
 
-		struct class_region //regions given to classes and data inside them
-		{
-			int offset_in_numbers;//how many meshes can be drawn before this region
-			int size_in_number;//how many meshes can be drawn using this region
-
-			std::vector<std::shared_ptr<float>> data_ptrs;//datas for this region, vector index -> attribute index, and pointer for data
-			std::vector<unsigned int> data_amount;//amount of floats in data_ptr
-		};
-
 		std::vector<std::shared_ptr<class_region>> shared_regions;
 
 		void bind_textures(Shader shader)
@@ -96,7 +87,6 @@ private:
 			//	printf(Tex_Types_Names[i].c_str());
 			//	printf(" count: %d\n", counts[i]);
 			//}
-			
 
 		}
 		
@@ -140,6 +130,7 @@ private:
 		std::vector<vertex_data>  vertices;
 		std::vector<unsigned int> indices;
 		std::vector<Texture>      textures;
+		std::shared_ptr<class_region> last_bound_region = nullptr;
 
 		unsigned int VAO, VBO_Mesh, EBO;
 
@@ -168,12 +159,12 @@ private:
 			// vertex texture coords
 			glEnableVertexAttribArray(1);
 			glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(vertex_data), (void*)offsetof(vertex_data, tex_coords));
-			instance_attributes[0] = { VBO_Mesh,1,1,2,0 };
+			instance_attributes[1] = { VBO_Mesh,1,1,2,0 };
 
 			// vertex  normals
 			glEnableVertexAttribArray(2);
 			glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(vertex_data), (void*)offsetof(vertex_data, normal));
-			instance_attributes[0] = { VBO_Mesh,2,2,3,0 };
+			instance_attributes[2] = { VBO_Mesh,2,2,3,0 };
 			glBindVertexArray(0);
 		}
 
@@ -212,6 +203,13 @@ private:
 			//TODO: resize VBOS and re upload data
 
 			return region;
+		}
+
+		void add_class_region(std::shared_ptr<class_region> region)
+		{
+			shared_regions.push_back(region);
+			calc_offset_in_number();
+			//TODO: resize VBOS and re upload data
 		}
 
 		void load_all_regions_for_attribute(int attrib_index)
@@ -299,6 +297,15 @@ private:
 
 		//TODO: expand_instance_buffer to expand previously created buffer
 
+		/// <summary>
+		/// this function used to load data to previously created instance buffer using add_instance_buffer function
+		/// it overwrites the data at point
+		/// </summary>
+		/// <param name="data"> - the float[] keeping the data, can use vector.data()</param>
+		/// <param name="amount_in_attrib_size"> - how many of that attrbiute is in this data, shape dont matter if you load 4 mat4 then write 4</param>
+		/// <param name="attrib_index"> - which attrib you are writing to</param>
+		/// <param name="region"> - your class_region, if you dont have one, get using resere_class_region</param>
+		/// <param name="data_offset_by_attrib_size"> - if you want to change a spesfic place, it starts after that attribute</param>
 		void load_instance_buffer(float* data, unsigned int amount_in_attrib_size, int attrib_index,
 			std::shared_ptr<class_region> region, float data_offset_by_attrib_size = 0)
 		{
@@ -319,21 +326,46 @@ private:
 		}
 
 		//TODO: request class offset and use it with attrip pointers
-		void draw(Shader& shader)
+
+		void draw(Shader& shader, std::shared_ptr<class_region> region, int amount = 1)
 		{
 			bind_textures(shader);
-
+			
 			glBindVertexArray(VAO);
-			glDrawElements(GL_TRIANGLES, static_cast<unsigned int>(indices.size()), GL_UNSIGNED_INT, 0);
-			glBindVertexArray(0);
-		}
+			
+			if (last_bound_region != region)
+			{
+				last_bound_region = region;
 
-		void draw_instanced(Shader& shader, int amount)
-		{
-			bind_textures(shader);
+				for (const attribute& attrib : instance_attributes)
+				{
+					if (attrib.VBO == 0)
+						continue;
 
-			glBindVertexArray(VAO);
+					if(attrib.attrib_start_index <=2)
+						continue; //mesh attribute
+
+					glBindBuffer(GL_ARRAY_BUFFER, attrib.VBO);
+
+					unsigned int attribute_size_number = (attrib.attrib_size_bytes / (unsigned int)sizeof(float));
+					int component_offset = 0;
+
+					for (int i = attrib.attrib_start_index; i <= attrib.attrib_fin_index; i++)
+					{
+						int components = (4 < attribute_size_number) ? 4 : attribute_size_number;
+						glVertexAttribPointer(i, components, GL_FLOAT, GL_FALSE, attrib.attrib_size_bytes,
+							(void*)((region->offset_in_numbers * attrib.attrib_size_bytes) + (component_offset * sizeof(float))));
+
+						component_offset += components;
+						attribute_size_number -= components;
+					}
+
+				}
+				glBindBuffer(GL_ARRAY_BUFFER, 0);
+			}
+
 			glDrawElementsInstanced(GL_TRIANGLES, static_cast<unsigned int>(indices.size()), GL_UNSIGNED_INT, 0, amount);
+			draw_call_count++;
 			glBindVertexArray(0);
 		}
 	};
@@ -462,37 +494,64 @@ public:
 
 	Mesh_Childs root;
 
-	void draw(Shader shader)
+	void draw(Shader shader, std::shared_ptr<class_region> region, int amount = 1)
 	{
 		for(std::shared_ptr<Mesh> pointer : Meshes)
 		{
-			pointer->draw(shader);
+			pointer->draw(shader, region, amount);
 		}
 	}
 
-	void draw_instanced(Shader shader, int amount)
+	std::shared_ptr<class_region> reserve_class_region(int size_in_number)
+	{
+		if (Meshes.empty())
+			throw std::runtime_error("No meshes to reserve class region for.");
+
+		// Reserve region in the first mesh
+		std::shared_ptr<class_region> region = Meshes[0]->reserve_class_region(size_in_number);
+
+		// Add the same region to all other meshes
+		for (size_t i = 1; i < Meshes.size(); i++)
+		{
+			Meshes[i]->add_class_region(region);
+		}
+		return region;
+	}
+
+	///use this function to add extra per-instance attributes like colors,model matrices etc.
+	///this function only crates buffers, to load data use function load_instance_buffer
+	///if you want to expand a previously created buffer, this function clears the area first so load all the data back after this
+	///most of the time you have max of 16 attrib indexs per vao, 0-1-2 are used by mesh,
+	///You can have 4 attribs per index, after 4 it crates another index
+	///you should have enough vectors for amount you wanna draw,
+	///if you have more no problem, if you have less than you get undefined behevior
+	void add_instance_buffer(int attrib_size, int attrib_index, int loop_instance = 1)
 	{
 		for (std::shared_ptr<Mesh> pointer : Meshes)
 		{
-			pointer->draw_instanced(shader, amount);
+			pointer->add_instance_buffer(attrib_size, attrib_index, loop_instance);
 		}
 	}
 
 
-	/////use this function to add extra per-instance attributes like colors,model matrices etc.
-	/////this function only crates buffers, to load data use function load_instance_buffer
-	/////if you want to expand a previously created buffer, this function clears the area first so load all the data back after this
-	/////most of the time you have max of 16 attrib indexs per vao, 0-1-2 are used by mesh,
-	/////You can have 4 attribs per index, after 4 it crates another index
-	/////you should have enough vectors for amount you wanna draw,
-	/////if you have more no problem, if you have less than you get undefined behevior
-	//void add_instance_buffer(unsigned int buffer_size_bytes, int attrib_size, int attrib_index, int loop_instance = 1)
-	//{
-	//	for (std::shared_ptr<Mesh> pointer : Meshes)
-	//	{
-	//		pointer->add_instance_buffer(buffer_size_bytes, attrib_size, attrib_index, loop_instance);
-	//	}
-	//}
+	/// <summary>
+	/// this function used to load data to previously created instance buffer using add_instance_buffer function
+	/// it overwrites the data at point
+	/// this one is for using with all meshes in the model
+	/// </summary>
+	/// <param name="data"> - the float[] keeping the data, can use vector.data()</param>
+	/// <param name="amount_in_attrib_size"> - how many of that attrbiute is in this data, shape dont matter if you load 4 mat4 then write 4</param>
+	/// <param name="attrib_index"> - which attrib you are writing to</param>
+	/// <param name="region"> - your class_region, if you dont have one, get using resere_class_region</param>
+	/// <param name="data_offset_by_attrib_size"> - if you want to change a spesfic place, it starts after that attribute</param>
+	void load_instance_buffer(float* data, unsigned int amount_in_attrib_size, int attrib_index,
+		std::shared_ptr<class_region> region, float data_offset_by_attrib_size = 0)
+	{
+		for (std::shared_ptr<Mesh> pointer : Meshes)
+		{
+			pointer->load_instance_buffer(data, amount_in_attrib_size, attrib_index, region, data_offset_by_attrib_size);
+		}
+	}
 
 	void import_model_from_file(std::string path)
 	{

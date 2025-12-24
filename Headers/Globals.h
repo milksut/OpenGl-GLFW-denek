@@ -8,6 +8,8 @@
 
 #define OPENGL_VERSION_MAJOR 3
 #define OPENGL_VERSION_MINOR 3
+
+
 //end of defines---------------------------------------------------------------------------------
 
 
@@ -18,6 +20,7 @@
 #include <glm/glm.hpp>
 #include <string>
 #include <vector>
+#include <memory>
 //end of includes---------------------------------------------------------------------------------
 
 
@@ -50,6 +53,13 @@
 
 
 
+//Global variables-------------------------------------------------------------------------------
+	unsigned int draw_call_count = 0; //to track how many draw calls are made per frame
+
+//end of global variables------------------------------------------------------------------------
+
+
+
 //Structs----------------------------------------------------------------------------------------
 struct Texture {
 	unsigned int id;
@@ -74,7 +84,46 @@ struct Light {
 	float quadratic;
 };
 
+struct class_region //VBO regions given to classes and data inside them
+{
+	int offset_in_numbers;//how many meshes can be drawn before this region
+	int size_in_number;//how many meshes can be drawn using this region
+
+	std::vector<std::shared_ptr<float>> data_ptrs;//datas for this region, vector index -> attribute index, and pointer for data
+	std::vector<unsigned int> data_amount;//amount of floats in data_ptr
+};
 //end of structs---------------------------------------------------------------------------------
+
+
+
+//Functions--------------------------------------------------------------------------------------
+
+#define GL_ERROR_CASE(err) case err: return #err
+
+const char* getGLErrorString(GLenum error)
+{
+	switch (error)
+	{
+		GL_ERROR_CASE(GL_NO_ERROR);
+		GL_ERROR_CASE(GL_INVALID_ENUM);
+		GL_ERROR_CASE(GL_INVALID_VALUE);
+		GL_ERROR_CASE(GL_INVALID_OPERATION);
+		GL_ERROR_CASE(GL_OUT_OF_MEMORY);
+		GL_ERROR_CASE(GL_INVALID_FRAMEBUFFER_OPERATION);
+	default: return "UNKNOWN_ERROR";
+	}
+}
+
+void checkGLError(const char* location)
+{
+	GLenum error;
+	while ((error = glGetError()) != GL_NO_ERROR)
+	{
+		printf("OpenGL Error at %s : %s \n", location, getGLErrorString(error));
+	}
+}
+
+//end of functions-------------------------------------------------------------------------------
 
 
 
