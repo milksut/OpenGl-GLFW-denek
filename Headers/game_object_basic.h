@@ -55,6 +55,8 @@ private:
 
 		std::vector<std::shared_ptr<class_region>> shared_regions;
 
+		bool can_override_vbo = false;
+
 		void bind_textures(Shader shader)
 		{
 			//these are sended as uniforms to shader as sampler2d arrays like TEXTURE[], DIFFUSE[] etc. What name is defined in globals.h
@@ -200,16 +202,46 @@ private:
 
 			calc_offset_in_number();
 
-			//TODO: resize VBOS and re upload data
+			//resize VBOS and re upload data
+			for(attribute &attrib : instance_attributes)
+			{
+				override_instance_buffer(attrib.attrib_size_bytes / sizeof(float), attrib.attrib_start_index, attrib.loop_instance);
+
+				if(attrib.VBO != 0)
+					load_all_regions_for_attribute(attrib.attrib_start_index);
+			}
 
 			return region;
+		}
+
+		void reserve_additional_region(int size_in_number, std::shared_ptr<class_region> region)
+		{
+			region->size_in_number = size_in_number;
+
+			calc_offset_in_number();
+
+			//resize VBOS and re upload data
+			for (attribute& attrib : instance_attributes)
+			{
+				override_instance_buffer(attrib.attrib_size_bytes / sizeof(float), attrib.attrib_start_index, attrib.loop_instance);
+				if (attrib.VBO != 0)
+					load_all_regions_for_attribute(attrib.attrib_start_index);
+			}
 		}
 
 		void add_class_region(std::shared_ptr<class_region> region)
 		{
 			shared_regions.push_back(region);
 			calc_offset_in_number();
-			//TODO: resize VBOS and re upload data
+
+			//resize VBOS and re upload data
+			for (attribute& attrib : instance_attributes)
+			{
+				override_instance_buffer(attrib.attrib_size_bytes / sizeof(float), attrib.attrib_start_index, attrib.loop_instance);
+
+				if (attrib.VBO != 0)
+					load_all_regions_for_attribute(attrib.attrib_start_index);
+			}
 		}
 
 		void load_all_regions_for_attribute(int attrib_index)
@@ -247,7 +279,6 @@ private:
 		///use this function to add extra per-instance attributes like colors,model matrices etc.
 		///it will crate a buffer of given size for every class_region known to this mesh
 		///this function only crates buffers, to load data use function load_instance_buffer
-		///if you want to expand a previously created buffer, use expand_instance_buffer
 		///most of the time you have max of 16 attrib indexs per vao, 0-1-2 are used by mesh,
 		///You can have 4 attribs(floats) per index, after 4 it crates another index
 		///you should have enough vectors for amount you wanna draw,
@@ -257,7 +288,7 @@ private:
 			if(shared_regions.empty())
 				return -1; //no regions to create buffer for
 
-			if (instance_attributes[attrib_index].VBO != 0)
+			if (!can_override_vbo && instance_attributes[attrib_index].VBO != 0)
 				return -1; //attribute already filled
 
 			int index_amount = (attrib_size / 4) + (attrib_size%4 ==0? 0:1);
@@ -295,7 +326,13 @@ private:
 			return 0;
 		}
 
-		//TODO: expand_instance_buffer to expand previously created buffer
+		int override_instance_buffer(int attrib_size, int attrib_index, int loop_instance = 1)
+		{
+			can_override_vbo = true;
+			int result = add_instance_buffer(attrib_size, attrib_index, loop_instance);
+			can_override_vbo = false;
+			return result;
+		}
 
 		/// <summary>
 		/// this function used to load data to previously created instance buffer using add_instance_buffer function
@@ -324,8 +361,6 @@ private:
 				amount_in_attrib_size * attrib.attrib_size_bytes, data);
 			glBindBuffer(GL_ARRAY_BUFFER, 0);
 		}
-
-		//TODO: request class offset and use it with attrip pointers
 
 		void draw(Shader& shader, std::shared_ptr<class_region> region, int amount = 1)
 		{
@@ -516,6 +551,14 @@ public:
 			Meshes[i]->add_class_region(region);
 		}
 		return region;
+	}
+
+	void reserve_additional_region(int size_in_number, std::shared_ptr<class_region> region)
+	{
+		for (std::shared_ptr<Mesh> pointer : Meshes)
+		{
+			pointer->reserve_additional_region(size_in_number, region);
+		}
 	}
 
 	///use this function to add extra per-instance attributes like colors,model matrices etc.

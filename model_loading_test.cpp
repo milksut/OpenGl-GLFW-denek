@@ -178,14 +178,21 @@ int main()
 	backpack.import_model_from_file("C:\\Users\\altay\\Desktop\\Tree1.obj");
 	
 	//-*-*-*-*-*-*-*-**-*-*-*-*-**-*-*-*-*-*-*-*-*-*-*-*-*-*-*-**-*-*-*-*-*-*-*-*
-	int amount_drawn = 30000;
+	int amount_drawn = 300;
+	int amount_drawn2 = 300;
+
+	int grid_amount = 100;
 	//-*-*-*-*-*-*-*-**-*-*-*-*-**-*-*-*-*-*-*-*-*-*-*-*-*-*-*-**-*-*-*-*-*-*-*-*
 
 	std::shared_ptr<class_region> region = backpack.reserve_class_region(amount_drawn);
 
-	backpack.add_instance_buffer(16, 3); //attrib size-mat4-16floats, attrib index
+	std::shared_ptr<class_region> region2 = backpack.reserve_class_region(amount_drawn2);
 
-	
+	std::shared_ptr<class_region> grid_region = backpack.reserve_class_region(grid_amount);
+
+	backpack.reserve_additional_region(grid_amount * grid_amount, grid_region);
+
+	backpack.add_instance_buffer(16, 3); //attrib size-mat4-16floats, attrib index
 
 	std::vector<glm::mat4> model_matrices;
 	for (int i = 0; i < amount_drawn; i++)
@@ -196,7 +203,33 @@ int main()
 		model_matrices.push_back(model);
 	}
 
+	std::vector<glm::mat4> model_matrices2;
+	for (int i = 0; i < amount_drawn2; i++)
+	{
+		glm::mat4 model = glm::mat4(1.0f);
+		model = glm::translate(model, glm::vec3(i * 3.5f, 0.0f, 5.0f));
+		model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));
+		model_matrices2.push_back(model);
+	}
+
+	std::vector<glm::mat4> model_matrices_grid;
+	for (int i = 0; i < grid_amount; i++)
+	{
+		for (int j = 0; j < grid_amount; j++)
+		{
+			glm::mat4 model = glm::mat4(1.0f);
+			model = glm::translate(model, glm::vec3(i * 5.0f, 5.0f, j * 5.0f));
+			model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));
+			model_matrices_grid.push_back(model);
+		}
+		
+	}
+
 	backpack.load_instance_buffer((float*)model_matrices.data(), model_matrices.size(), 3, region);
+
+	backpack.load_instance_buffer((float*)model_matrices2.data(), model_matrices2.size(), 3, region2);
+
+	backpack.load_instance_buffer((float*)model_matrices_grid.data(), model_matrices_grid.size(), 3, grid_region);
 
 	glEnable(GL_DEPTH_TEST); // Enable depth testing for 3D rendering
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
@@ -218,8 +251,14 @@ int main()
 		shader.setMatrix4fv("view", glm::value_ptr(camera.get_view_matrix()));
 		shader.setMatrix4fv("projection", glm::value_ptr(camera.projection));
 
-		backpack.draw(shader, region , amount_drawn);
+		/*backpack.draw(shader, region , amount_drawn);
 		checkGLError("After drawing backpack");
+
+		backpack.draw(shader, region2 , amount_drawn2);
+		checkGLError("After drawing backpack2");*/
+
+		backpack.draw(shader, grid_region, grid_amount * grid_amount);
+		checkGLError("After drawing grid backpack");
 
 		x++;
 		if (glfwGetTime() - z >= 1.0f)
