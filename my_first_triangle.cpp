@@ -1,7 +1,6 @@
 //#include <glad/glad.h> 
 //#include <iostream>
 //#include <glfw/glfw3.h>
-//
 ////In order for OpenGL to use the shader it has to dynamically compile it at run-time from its source code. 
 //const char* vertexShaderSource = "#version 330 core\n"
 //"layout (location = 0) in vec3 aPos;\n"

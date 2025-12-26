@@ -175,7 +175,7 @@ int main()
 
 	game_object_basic_model backpack;
 	//backpack.import_model_from_file("C:\\Users\\altay\\Desktop\\pull_from_this_easy\\Backpack.obj");
-	backpack.import_model_from_file("C:\\Users\\altay\\Desktop\\Tree1.obj");
+	backpack.import_model_from_file("C:\\Tree1.obj");
 	
 	//-*-*-*-*-*-*-*-**-*-*-*-*-**-*-*-*-*-*-*-*-*-*-*-*-*-*-*-**-*-*-*-*-*-*-*-*
 	int amount_drawn = 300;

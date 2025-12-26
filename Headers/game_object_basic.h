@@ -35,6 +35,14 @@ private:
 		float tex_coords[2];
 		float normal[3];
 	};
+	struct MaterialData
+	{
+		glm::vec3 diffuse;    // MTL: Kd
+		glm::vec3 specular;   // MTL: Ks
+		float shininess;      // MTL: Ns
+		bool hasTexture;      // texture var mý?
+	};
+
 
 	class Mesh
 	{
@@ -50,6 +58,8 @@ private:
 		};
 
 		attribute empty_attrib = { 0,-1,-1,0,-1 };
+
+		MaterialData material;
 
 		std::vector<attribute> instance_attributes;
 
@@ -129,6 +139,11 @@ private:
 
 
 	public:
+
+		void setMaterial(const MaterialData& mat)
+		{
+			material = mat;
+		}
 		std::vector<vertex_data>  vertices;
 		std::vector<unsigned int> indices;
 		std::vector<Texture>      textures;
@@ -365,7 +380,12 @@ private:
 		void draw(Shader& shader, std::shared_ptr<class_region> region, int amount = 1)
 		{
 			bind_textures(shader);
-			
+
+			shader.setVec3("material.diffuse", material.diffuse);
+			shader.setVec3("material.specular", material.specular);
+			shader.setFloat("material.shininess", material.shininess);
+			shader.setBool("material.hasTexture", material.hasTexture);
+
 			glBindVertexArray(VAO);
 			
 			if (last_bound_region != region)
@@ -435,6 +455,8 @@ private:
 		std::vector<vertex_data> vertices;
 		std::vector<unsigned int> indices;
 		std::vector<Texture> textures;
+
+
 		//process vertices
 		for (unsigned int i = 0; i < mesh->mNumVertices; i++)
 		{
@@ -476,10 +498,51 @@ private:
 			for (unsigned int j = 0; j < face.mNumIndices; j++)
 				indices.push_back(face.mIndices[j]);
 		}
+
+		MaterialData mat;
+		mat.diffuse = glm::vec3(1.0f, 1.0f, 1.0f); // beyaz
+		mat.specular = glm::vec3(0.5f, 0.5f, 0.5f);
+		mat.shininess = 32.0f;
+		mat.hasTexture = false;
 		//process material
 		if (mesh->mMaterialIndex >= 0)
 		{
+
 			aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
+
+			// Kd
+			aiColor3D color(1.0f, 1.0f, 1.0f);
+
+			//Diffuse dene
+			if (material->Get(AI_MATKEY_COLOR_DIFFUSE, color) == AI_SUCCESS)
+			{
+				mat.diffuse = glm::vec3(color.r, color.g, color.b);
+			}
+			else
+			{
+				//Ambient fallback
+				if (material->Get(AI_MATKEY_COLOR_AMBIENT, color) == AI_SUCCESS)
+				{
+					mat.diffuse = glm::vec3(color.r, color.g, color.b);
+				}
+				else
+				{
+					//DEBUG rengi
+					mat.diffuse = glm::vec3(1.0f, 0.0f, 1.0f); // MOR
+				}
+			}
+
+
+			// Ks
+			material->Get(AI_MATKEY_COLOR_SPECULAR, color);
+			mat.specular = glm::vec3(color.r, color.g, color.b);
+
+			// Ns
+			float shininess = 32.0f;
+			material->Get(AI_MATKEY_SHININESS, shininess);
+			mat.shininess = shininess;
+
+			
 			bool loop = true;
 			for (int i = 0; i < Tex_type_amount; loop = !loop)
 			{
@@ -487,6 +550,11 @@ private:
 				
 				for(int j = 0; j < material->GetTextureCount(assimp_type); j++)
 				{
+					//if (assimp_type == aiTextureType_DIFFUSE)
+					//{
+					//	mat.hasTexture = true;
+					//}
+
 					Texture* texture;
 					aiString str;
 					int unused_data1 = 0, unused_data2 = 0, unused_data3 = 0; // data returned by load_image but unused here
@@ -517,9 +585,13 @@ private:
 				
 				if (!loop) i++;
 			}
-
 		}
-		return std::make_shared<Mesh>(vertices,indices,textures);
+		std::shared_ptr<Mesh> newMesh =
+			std::make_shared<Mesh>(vertices, indices, textures);
+
+		newMesh->setMaterial(mat);
+
+		return newMesh;
 	}
 
 public:
