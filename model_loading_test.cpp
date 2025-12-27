@@ -256,7 +256,7 @@ int main()
 
 		backpack.draw(shader, region2 , amount_drawn2);
 		checkGLError("After drawing backpack2");*/
-
+		shader.setVec3("ambientLight", glm::vec3(0.75f));
 		backpack.draw(shader, grid_region, grid_amount * grid_amount);
 		checkGLError("After drawing grid backpack");
 

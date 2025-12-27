@@ -35,14 +35,20 @@ private:
 		float tex_coords[2];
 		float normal[3];
 	};
+
 	struct MaterialData
 	{
-		glm::vec3 diffuse;    // MTL: Kd
-		glm::vec3 specular;   // MTL: Ks
-		float shininess;      // MTL: Ns
-		bool hasTexture;      // texture var mý?
-	};
+		glm::vec3 diffuse;
+		glm::vec3 specular;
+		float shininess;
 
+		void apply(Shader& shader) const
+		{
+			shader.setVec3("material.diffuse", diffuse);
+			shader.setVec3("material.specular", specular);
+			shader.setFloat("material.shininess", shininess);
+		}
+	};
 
 	class Mesh
 	{
@@ -67,39 +73,68 @@ private:
 
 		bool can_override_vbo = false;
 
-		void bind_textures(Shader shader)
+
+		/*
+		Binds textures used by this mesh and sends them to the shader.
+		Textures are grouped by type (diffuse / specular / normal).
+		*/
+		void bind_textures(Shader& shader)
 		{
-			//these are sended as uniforms to shader as sampler2d arrays like TEXTURE[], DIFFUSE[] etc. What name is defined in globals.h
-			//sended data amount is sended as int array named TEX_COUNTS[], they are in order of enum TextureType
-			std::array<std::vector<int>,Tex_type_amount> texture_locations;
-			for(std::vector<int> &var : texture_locations)
-			{
-				var.reserve(TEXTURE_SLOTS);
-			}
-			int counts[Tex_type_amount] = { 0 };
+			// Number of textures per type currently bound for this mesh
+			int diffuseCount = 0;
+			int specularCount = 0;
+			int normalCount = 0;
 
-			for (int i = 0; i < TEXTURE_SLOTS && i < textures.size(); i++)
+			// Iterate over all textures assigned to this mesh
+			for (unsigned int i = 0; i < textures.size(); i++)
 			{
-				int slot_index = Texture_slots::bound_texture(textures[i].id);
-				counts[textures[i].type]++;
+				// Bind texture to an available texture unit and get its slot index
+				int slot = Texture_slots::bound_texture(textures[i].id);
 
-				texture_locations[textures[i].type].push_back(slot_index);
-			}
-			
-			shader.setInt("TEX_COUNTS", counts, Tex_type_amount);
-			for(int i = 0; i<Tex_type_amount;i++)
-			{
-				shader.setInt(Tex_Types_Names[i], texture_locations[i].data(), counts[i]);
+				switch (textures[i].type)
+				{
+				case TextureType::DIFFUSE:
+				{
+					// Example: DIFFUSE[0], DIFFUSE[1], ...
+					std::string uniformName =
+						"DIFFUSE[" + std::to_string(diffuseCount) + "]";
+
+					shader.setInt(uniformName.c_str(), slot);
+					diffuseCount++;
+					break;
+				}
+
+				case TextureType::SPECULAR:
+				{
+					// Example: SPECULAR[0], SPECULAR[1], ...
+					std::string uniformName =
+						"SPECULAR[" + std::to_string(specularCount) + "]";
+
+					shader.setInt(uniformName.c_str(), slot);
+					specularCount++;
+					break;
+				}
+
+				case TextureType::NORMAL:
+				{
+					// Example: NORMAL_MAP[0], NORMAL_MAP[1], ...
+					std::string uniformName =
+						"NORMAL_MAP[" + std::to_string(normalCount) + "]";
+
+					shader.setInt(uniformName.c_str(), slot);
+					normalCount++;
+					break;
+				}
+				}
 			}
 
+			// Send texture counts to the shader
+			shader.setInt("DIFFUSE_COUNT", diffuseCount);
+			shader.setInt("SPECULAR_COUNT", specularCount);
+			shader.setInt("NORMAL_COUNT", normalCount);
+
+			// Reset active texture to default state
 			glActiveTexture(GL_TEXTURE0);
-
-			//for (int i = 0; i < Tex_type_amount; i++)
-			//{
-			//	printf(Tex_Types_Names[i].c_str());
-			//	printf(" count: %d\n", counts[i]);
-			//}
-
 		}
 		
 		void delete_instance_buffer(int attrib_index)
@@ -140,10 +175,12 @@ private:
 
 	public:
 
+
 		void setMaterial(const MaterialData& mat)
 		{
 			material = mat;
 		}
+
 		std::vector<vertex_data>  vertices;
 		std::vector<unsigned int> indices;
 		std::vector<Texture>      textures;
@@ -377,14 +414,11 @@ private:
 			glBindBuffer(GL_ARRAY_BUFFER, 0);
 		}
 
+
 		void draw(Shader& shader, std::shared_ptr<class_region> region, int amount = 1)
 		{
+			material.apply(shader);
 			bind_textures(shader);
-
-			shader.setVec3("material.diffuse", material.diffuse);
-			shader.setVec3("material.specular", material.specular);
-			shader.setFloat("material.shininess", material.shininess);
-			shader.setBool("material.hasTexture", material.hasTexture);
 
 			glBindVertexArray(VAO);
 			
@@ -503,7 +537,7 @@ private:
 		mat.diffuse = glm::vec3(1.0f, 1.0f, 1.0f); // beyaz
 		mat.specular = glm::vec3(0.5f, 0.5f, 0.5f);
 		mat.shininess = 32.0f;
-		mat.hasTexture = false;
+
 		//process material
 		if (mesh->mMaterialIndex >= 0)
 		{
