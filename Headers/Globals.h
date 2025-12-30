@@ -25,7 +25,7 @@
 
 
 
-//X-Macros----------------------------------------------------------------------------------------
+//// X-Macros----------------------------------------------------------------------------------------
 	//TEX_TYPE MACRO------------------------------------------------------------------------------
 	#define TEX_TYPES \
 		X(DIFFUSE , aiTextureType_DIFFUSE, aiTextureType_BASE_COLOR) \
@@ -91,6 +91,19 @@ struct class_region //VBO regions given to classes and data inside them
 
 	std::vector<std::shared_ptr<float>> data_ptrs;//datas for this region, vector index -> attribute index, and pointer for data
 	std::vector<unsigned int> data_amount;//amount of floats in data_ptr
+};
+
+struct material_properties
+{
+	bool uses_material;
+	glm::vec3 ambient;
+	glm::vec3 diffuse;
+	glm::vec3 specular;
+	float shininess;
+	glm::vec3 emission; //object emits light
+	int opacity;
+	int index_of_refraction; //how much light bends when entering the material
+	int illumination_model; //illumination model used by the material
 };
 //end of structs---------------------------------------------------------------------------------
 

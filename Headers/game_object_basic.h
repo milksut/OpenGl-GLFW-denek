@@ -83,12 +83,20 @@ private:
 			}
 
 			glActiveTexture(GL_TEXTURE0);
+			
+			shader.setBool("material.uses_material", mesh_material.uses_material);
 
-			//for (int i = 0; i < Tex_type_amount; i++)
-			//{
-			//	printf(Tex_Types_Names[i].c_str());
-			//	printf(" count: %d\n", counts[i]);
-			//}
+			if (mesh_material.uses_material)
+			{
+				shader.setVec3("material.ambient", mesh_material.ambient);
+				shader.setVec3("material.diffuse", mesh_material.diffuse);
+				shader.setVec3("material.specular", mesh_material.specular);
+				shader.setFloat("material.shininess", mesh_material.shininess);
+				shader.setVec3("material.emission", mesh_material.emission);
+				shader.setInt("material.opacity", mesh_material.opacity);
+				shader.setInt("material.index_of_refraction", mesh_material.index_of_refraction);
+				shader.setInt("material.illumination_model", mesh_material.illumination_model);
+			}
 
 		}
 		
@@ -133,6 +141,10 @@ private:
 		std::vector<unsigned int> indices;
 		std::vector<Texture>      textures;
 		std::shared_ptr<class_region> last_bound_region = nullptr;
+
+		//material properties for this mesh:
+		//uses material - ambient - diffuse - specular - shininess - emission - opacity - index_of_refraction - illumination_model
+		material_properties mesh_material = { false, glm::vec3(1.0f), glm::vec3(1.0f), glm::vec3(1.0f), 32.0f, glm::vec3(0.0f), 1, 1, 0 };
 
 		unsigned int VAO, VBO_Mesh, EBO;
 
@@ -435,6 +447,7 @@ private:
 		std::vector<vertex_data> vertices;
 		std::vector<unsigned int> indices;
 		std::vector<Texture> textures;
+		material_properties mat_props = { false, glm::vec3(1.0f), glm::vec3(1.0f), glm::vec3(1.0f), 32.0f, glm::vec3(0.0f), 1.0f, 1.0f, 0 };
 		//process vertices
 		for (unsigned int i = 0; i < mesh->mNumVertices; i++)
 		{
@@ -518,8 +531,42 @@ private:
 				if (!loop) i++;
 			}
 
+			aiString name;
+			aiColor3D color;
+			float value;
+			int illum;
+
+			if (AI_SUCCESS == material->Get(AI_MATKEY_NAME, name))
+				mat_props.uses_material = true;
+
+			if (AI_SUCCESS == material->Get(AI_MATKEY_COLOR_AMBIENT, color))
+				mat_props.ambient = glm::vec3(color.r, color.g, color.b);
+
+			if (AI_SUCCESS == material->Get(AI_MATKEY_COLOR_DIFFUSE, color))
+				mat_props.diffuse = glm::vec3(color.r, color.g, color.b);
+
+			if (AI_SUCCESS == material->Get(AI_MATKEY_COLOR_SPECULAR, color))
+				mat_props.specular = glm::vec3(color.r, color.g, color.b);
+
+			if (AI_SUCCESS == material->Get(AI_MATKEY_SHININESS, value))
+				mat_props.shininess = value;
+
+			if (AI_SUCCESS == material->Get(AI_MATKEY_COLOR_EMISSIVE, color))
+				mat_props.emission = glm::vec3(color.r, color.g, color.b);
+
+			if (AI_SUCCESS == material->Get(AI_MATKEY_OPACITY, value))
+				mat_props.opacity = value;
+
+			if (AI_SUCCESS == material->Get(AI_MATKEY_REFRACTI, value))
+				mat_props.index_of_refraction = value;
+
+			if (AI_SUCCESS == material->Get(AI_MATKEY_SHADING_MODEL, illum))
+				mat_props.illumination_model = illum;
 		}
-		return std::make_shared<Mesh>(vertices,indices,textures);
+
+		std::shared_ptr<Mesh> mesh_ptr = std::make_shared<Mesh>(vertices,indices,textures);
+		mesh_ptr->mesh_material = mat_props;
+		return mesh_ptr;
 	}
 
 public:

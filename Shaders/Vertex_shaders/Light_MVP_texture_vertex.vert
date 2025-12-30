@@ -18,5 +18,4 @@ void main()
     gl_Position = projection * vec4(FragPos, 1.0); 
     TexCoord = aTexCoord;
     Normal = mat3(transpose_inverse_viewXmodel) * aNormal;
-   
 }

@@ -41,7 +41,6 @@ void main()
     vec3 diff_map_val = vec3(texture(material.diffuse, TexCoord));
     vec3 spec_val = vec3(texture(material.specular,TexCoord));
 
-    //todo: implement a light manager that calculates distance and gives only close sources to shader.
     for(int i = 0; i < max(num_of_lights,16); i++)
     {
         vec3 lightDir = lights[i].has_a_source ? normalize(lights[i].light_pos - FragPos) : lights[i].light_target; 
@@ -52,7 +51,7 @@ void main()
             float cos_theta = dot(-lightDir, normalize(lights[i].light_target)); 
             if(cos_theta > lights[i].cos_hard_cut_off_angle)
             {    
-                float distance    = length(lights[i].light_pos - FragPos);
+                float distance  = length(lights[i].light_pos - FragPos);
                 light_power = 1.0 / (lights[i].constant + lights[i].linear * distance + 
                             lights[i].quadratic * (distance * distance));
                 if(cos_theta < lights[i].cos_soft_cut_off_angle)

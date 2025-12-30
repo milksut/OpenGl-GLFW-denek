@@ -175,44 +175,22 @@ int main()
 
 	game_object_basic_model backpack;
 	//backpack.import_model_from_file("C:\\Users\\altay\\Desktop\\pull_from_this_easy\\Backpack.obj");
+
 	backpack.import_model_from_file("C:\\Users\\altay\\Desktop\\Tree1.obj");
 	
 	//-*-*-*-*-*-*-*-**-*-*-*-*-**-*-*-*-*-*-*-*-*-*-*-*-*-*-*-**-*-*-*-*-*-*-*-*
-	int amount_drawn = 300;
-	int amount_drawn2 = 300;
-
 	int grid_amount = 100;
 	//-*-*-*-*-*-*-*-**-*-*-*-*-**-*-*-*-*-*-*-*-*-*-*-*-*-*-*-**-*-*-*-*-*-*-*-*
 
-	std::shared_ptr<class_region> region = backpack.reserve_class_region(amount_drawn);
+	std::shared_ptr<class_region> grid_region = backpack.reserve_class_region(grid_amount * grid_amount);
 
-	std::shared_ptr<class_region> region2 = backpack.reserve_class_region(amount_drawn2);
+	backpack.add_instance_buffer(16, 3); //attrib size-mat4-16floats, attrib index, for model
 
-	std::shared_ptr<class_region> grid_region = backpack.reserve_class_region(grid_amount);
+	backpack.add_instance_buffer(9, 7); //attrib size-mat3-12floats, attrib index, for transpose_inverse_viewXmodel
 
-	backpack.reserve_additional_region(grid_amount * grid_amount, grid_region);
-
-	backpack.add_instance_buffer(16, 3); //attrib size-mat4-16floats, attrib index
-
-	std::vector<glm::mat4> model_matrices;
-	for (int i = 0; i < amount_drawn; i++)
-	{
-		glm::mat4 model = glm::mat4(1.0f);
-		model = glm::translate(model, glm::vec3(i * 3.0f, 0.0f, -5.0f));
-		model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));
-		model_matrices.push_back(model);
-	}
-
-	std::vector<glm::mat4> model_matrices2;
-	for (int i = 0; i < amount_drawn2; i++)
-	{
-		glm::mat4 model = glm::mat4(1.0f);
-		model = glm::translate(model, glm::vec3(i * 3.5f, 0.0f, 5.0f));
-		model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));
-		model_matrices2.push_back(model);
-	}
 
 	std::vector<glm::mat4> model_matrices_grid;
+	model_matrices_grid.reserve(grid_amount * grid_amount);
 	for (int i = 0; i < grid_amount; i++)
 	{
 		for (int j = 0; j < grid_amount; j++)
@@ -222,14 +200,50 @@ int main()
 			model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));
 			model_matrices_grid.push_back(model);
 		}
+
+	}
 		
+	backpack.load_instance_buffer((float*)model_matrices_grid.data(), model_matrices_grid.size(), 3, grid_region);
+	checkGLError("After loading models");
+
+	std::vector<glm::mat3> transpose_inverse_model_matrices_grid;
+	transpose_inverse_model_matrices_grid.reserve(grid_amount * grid_amount);
+	for (int i = 0; i < grid_amount; i++)
+	{
+		for (int j = 0; j < grid_amount; j++)
+		{
+			glm::mat4 model = model_matrices_grid[i * grid_amount + j];
+			glm::mat3 transpose_inverse_model = glm::transpose(glm::inverse(glm::mat3(model)));
+			transpose_inverse_model_matrices_grid.push_back(transpose_inverse_model);
+		}
 	}
 
-	backpack.load_instance_buffer((float*)model_matrices.data(), model_matrices.size(), 3, region);
+	backpack.load_instance_buffer((float*)transpose_inverse_model_matrices_grid.data(), transpose_inverse_model_matrices_grid.size(), 7, grid_region);
+	checkGLError("After loading transpose_inverse");
 
-	backpack.load_instance_buffer((float*)model_matrices2.data(), model_matrices2.size(), 3, region2);
+	Light sun = {false, glm::vec3(0.0), glm::vec3(0.0,-1.0,0.0), glm::vec3(1.0,1.0,1.0), glm::vec3(5.0,5.0,5.0), glm::vec3(0.5f,0.5f,0.5f),0,0,0,0,0};
+	
+	shader.use();
+	shader.setInt("num_of_lights", 1);
+	checkGLError("After changing light amount");
 
-	backpack.load_instance_buffer((float*)model_matrices_grid.data(), model_matrices_grid.size(), 3, grid_region);
+	shader.setBool("lights[0].has_a_source", sun.has_a_source);
+	shader.setVec3("lights[0].light_pos", sun.light_pos);
+	shader.setVec3("lights[0].light_target", sun.light_target);
+
+	shader.setVec3("lights[0].ambient", sun.ambient);
+	shader.setVec3("lights[0].diffuse", sun.diffuse);
+	shader.setVec3("lights[0].specular", sun.specular);
+	
+	shader.setFloat("lights[0].cos_soft_cut_off_angle", sun.cos_soft_cut_off_angle);
+	shader.setFloat("lights[0].cos_hard_cut_off_angle", sun.cos_hard_cut_off_angle);
+
+	shader.setFloat("lights[0].constant", sun.constant);
+	shader.setFloat("lights[0].linear", sun.linear);
+	shader.setFloat("lights[0].quadratic", sun.quadratic);
+
+	checkGLError("After loading light");
+
 
 	glEnable(GL_DEPTH_TEST); // Enable depth testing for 3D rendering
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
@@ -248,14 +262,11 @@ int main()
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		shader.use();
+		shader.setVec3("viewPos", camera.camera_position);
 		shader.setMatrix4fv("view", glm::value_ptr(camera.get_view_matrix()));
 		shader.setMatrix4fv("projection", glm::value_ptr(camera.projection));
 
-		/*backpack.draw(shader, region , amount_drawn);
-		checkGLError("After drawing backpack");
 
-		backpack.draw(shader, region2 , amount_drawn2);
-		checkGLError("After drawing backpack2");*/
 
 		backpack.draw(shader, grid_region, grid_amount * grid_amount);
 		checkGLError("After drawing grid backpack");
