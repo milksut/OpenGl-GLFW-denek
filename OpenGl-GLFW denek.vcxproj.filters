@@ -39,6 +39,9 @@
     <ClCompile Include="model_loading_test.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="ForestFireSimulation.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Headers\TextRenderer.h">

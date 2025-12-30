@@ -1,11 +1,14 @@
 #version 330 core
 out vec4 FragColor;
 
-in vec2 TexCoord;
 
-uniform sampler2D Texture_1;
+#define MAX_TEX_PER_TYPE 16
+
+uniform sampler2D DIFFUSE[MAX_TEX_PER_TYPE];
+
+in vec2 TexCoord;
 
 void main()
 {
-    FragColor = texture(Texture_1, TexCoord);
+    FragColor = texture(DIFFUSE[0],TexCoord);
 }

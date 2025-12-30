@@ -49,55 +49,73 @@ uniform Light[16] lights;
 out vec4 FragColor;
 void main()
 {
-	vec3 norm = normalize(Normal);
-    vec3 total_light = vec3(0.0, 0.0, 0.0);
-    vec3 diff_map_val = material.uses_material ? material.diffuse : vec3(texture(DIFFUSE[0], TexCoord));
-    vec3 spec_val = material.uses_material ? material.specular : vec3(texture(SPECULAR[0],TexCoord));
-
-    for(int i = 0; i < min(num_of_lights,16); i++)
+    vec3 diff_map_val;
+    vec3 spec_val;
+    bool skip_flag = false;
+    if(material.uses_material)
     {
-        vec3 lightDir = lights[i].has_a_source ? normalize(lights[i].light_pos - FragPos) :  normalize(-(lights[i].light_target)); 
-
-        float light_power = 1.0f;
-        if(lights[i].has_a_source)
+        diff_map_val =  material.diffuse;
+        spec_val =material.specular;
+	}
+    else
+    {
+        vec4 color = texture(DIFFUSE[0], TexCoord);
+        if(color.w == 0)
         {
-            float cos_theta = dot(-lightDir, normalize(lights[i].light_target)); 
-            if(cos_theta > lights[i].cos_hard_cut_off_angle)
-            {    
-                float distance    = length(lights[i].light_pos - FragPos);
-                light_power = 1.0 / (lights[i].constant + lights[i].linear * distance + 
-                            lights[i].quadratic * (distance * distance));
-                if(cos_theta < lights[i].cos_soft_cut_off_angle)
-                {
-                    float epsilon   = lights[i].cos_soft_cut_off_angle - lights[i].cos_hard_cut_off_angle;
-                    light_power *= clamp((cos_theta - lights[i].cos_hard_cut_off_angle) / epsilon, 0.0, 1.0); 
+            FragColor = vec4(0.0f,0.0f,0.0f,0.0f);
+            skip_flag = true;
+        }
+        diff_map_val = vec3(color);
+        spec_val = vec3(texture(SPECULAR[0],TexCoord));
+    }
+    if(!skip_flag)
+    {
+        vec3 norm = normalize(Normal);
+        vec3 total_light = vec3(0.0, 0.0, 0.0);
+        for(int i = 0; i < min(num_of_lights,16); i++)
+        {
+            vec3 lightDir = lights[i].has_a_source ? normalize(lights[i].light_pos - FragPos) :  normalize(-(lights[i].light_target)); 
+
+            float light_power = 1.0f;
+            if(lights[i].has_a_source)
+            {
+                float cos_theta = dot(-lightDir, normalize(lights[i].light_target)); 
+                if(cos_theta > lights[i].cos_hard_cut_off_angle)
+                {    
+                    float distance    = length(lights[i].light_pos - FragPos);
+                    light_power = 1.0 / (lights[i].constant + lights[i].linear * distance + 
+                                lights[i].quadratic * (distance * distance));
+                    if(cos_theta < lights[i].cos_soft_cut_off_angle)
+                    {
+                        float epsilon   = lights[i].cos_soft_cut_off_angle - lights[i].cos_hard_cut_off_angle;
+                        light_power *= clamp((cos_theta - lights[i].cos_hard_cut_off_angle) / epsilon, 0.0, 1.0); 
+                    }
+                }
+                else 
+                {             
+                    light_power = 0.0;
                 }
             }
-            else 
-            {             
-                light_power = 0.0;
+
+            vec3 ambient_calc = lights[i].ambient * diff_map_val;
+
+            float diff = max(dot(norm, lightDir), 0.0);
+            vec3 diff_calc = lights[i].diffuse * diff * diff_map_val;
+
+
+            vec3 spec_calc = vec3(0,0,0);
+            if(spec_val.x + spec_val.y + spec_val.z > 0)
+            {
+                vec3 reflectDir = reflect(-lightDir, norm);
+                vec3 viewDir = normalize(viewPos - FragPos);
+                float spec = pow(max(dot(viewDir, reflectDir), 0.0), material.shininess);
+                spec_calc = lights[i].specular * spec_val * spec;
             }
+
+            total_light += (ambient_calc + (diff_calc + spec_calc)*light_power); 
+
         }
 
-        vec3 ambient_calc = lights[i].ambient * diff_map_val;
-
-        float diff = max(dot(norm, lightDir), 0.0);
-        vec3 diff_calc = lights[i].diffuse * diff * diff_map_val;
-
-
-        vec3 spec_calc = vec3(0,0,0);
-        if(spec_val.x + spec_val.y + spec_val.z > 0)
-        {
-            vec3 reflectDir = reflect(-lightDir, norm);
-            vec3 viewDir = normalize(viewPos - FragPos);
-            float spec = pow(max(dot(viewDir, reflectDir), 0.0), material.shininess);
-            spec_calc = lights[i].specular * spec_val * spec;
-        }
-
-        total_light += (ambient_calc + (diff_calc + spec_calc)*light_power); 
-
+        FragColor = vec4(total_light , 1.0f);
     }
-
-
-    FragColor = vec4(total_light , 1.0f);
 }

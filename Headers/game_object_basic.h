@@ -29,12 +29,7 @@ class game_object_basic_model
 {
 private:
 
-	struct vertex_data
-	{
-		float position[3];
-		float tex_coords[2];
-		float normal[3];
-	};
+	
 
 	class Mesh
 	{
@@ -573,6 +568,11 @@ public:
 
 	std::vector<std::shared_ptr<Mesh>> Meshes;//you cant use copy constructor or assignment operator because of Mesh class
 	//so you need to manage meshes throut pointers becouse vectors copy elements when resized
+
+	void add_mesh(std::vector<vertex_data>& vertices, std::vector<unsigned int>& indices, std::vector<Texture>& textures)
+	{
+		Meshes.push_back(std::make_shared<Mesh>(vertices, indices, textures));
+	}
 
 	Mesh_Childs root;
 

@@ -67,6 +67,13 @@ struct Texture {
 	std::string path;
 };
 
+struct vertex_data
+{
+	float position[3];
+	float tex_coords[2];
+	float normal[3];
+};
+
 struct Light {
 	bool has_a_source;
 	glm::vec3 light_pos;
