@@ -420,7 +420,7 @@ private:
 	struct Mesh_Childs
 	{
 		std::vector<std::shared_ptr<Mesh>> Meshes;
-		std::vector<Mesh_Childs> Childs;
+		std::vector<Mesh_Childs*> Childs;
 	};
 
 	void process_node(aiNode* node, const aiScene* scene, Mesh_Childs& parent_mesh,const std::string& path)
@@ -430,14 +430,16 @@ private:
 		{
 			aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
 			//process mesh
-			Meshes.push_back(process_mesh(mesh, scene, path));
+			std::shared_ptr<Mesh> temp = process_mesh(mesh, scene, path);
+			parent_mesh.Meshes.push_back(temp);
+			Meshes.push_back(temp);
 			printf("Processed mesh: %s\n", mesh->mName.C_Str());
 		}
 		//process childs
 		for (unsigned int i = 0; i < node->mNumChildren; i++)
 		{
 			Mesh_Childs child_mesh;
-			parent_mesh.Childs.push_back(child_mesh);
+			parent_mesh.Childs.push_back(&child_mesh);
 			process_node(node->mChildren[i], scene, child_mesh, path);
 		}
 	}

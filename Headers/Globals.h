@@ -28,7 +28,7 @@
 //// X-Macros----------------------------------------------------------------------------------------
 	//TEX_TYPE MACRO------------------------------------------------------------------------------
 	#define TEX_TYPES \
-		X(DIFFUSE , aiTextureType_DIFFUSE, aiTextureType_BASE_COLOR) \
+		X(DIFFUSE, aiTextureType_DIFFUSE, aiTextureType_BASE_COLOR) \
 		X(NORMAL , aiTextureType_NORMALS, aiTextureType_NONE) \
 		X(SPECULAR , aiTextureType_SPECULAR, aiTextureType_NONE) \
 
