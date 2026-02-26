@@ -10,3 +10,5 @@
 - GLAD -> OpenGL fonksiyonlarının yüklenmesi
 
 - ASSİMP -> Dışarıdan modelleri yüklemeye yarayan kütüphane
+
+- X11 -> Linux kullanıcılarının kurması gerekiyor
