@@ -1,0 +1,16 @@
+ Build folders
+cmake-build-debug/
+cmake-build-release/
+build/
+
+# External/downloaded libraries (no need to upload, CMake downloads them)
+external/
+
+# CLion specific
+.idea/
+
+# Compiled binaries
+*.o
+*.a
+*.so
+OpenGl-CMake
