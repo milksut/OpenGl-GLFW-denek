@@ -21,6 +21,7 @@
 #include <string>
 #include <vector>
 #include <memory>
+#include <stack>
 //end of includes---------------------------------------------------------------------------------
 
 
@@ -28,7 +29,7 @@
 //// X-Macros----------------------------------------------------------------------------------------
 	//TEX_TYPE MACRO------------------------------------------------------------------------------
 	#define TEX_TYPES \
-		X(DIFFUSE , aiTextureType_DIFFUSE, aiTextureType_BASE_COLOR) \
+		X(DIFFUSE, aiTextureType_DIFFUSE, aiTextureType_BASE_COLOR) \
 		X(NORMAL , aiTextureType_NORMALS, aiTextureType_NONE) \
 		X(SPECULAR , aiTextureType_SPECULAR, aiTextureType_NONE) \
 
@@ -67,6 +68,13 @@ struct Texture {
 	std::string path;
 };
 
+struct vertex_data
+{
+	float position[3];
+	float tex_coords[2];
+	float normal[3];
+};
+
 struct Light {
 	bool has_a_source;
 	glm::vec3 light_pos;
@@ -101,8 +109,8 @@ struct material_properties
 	glm::vec3 specular;
 	float shininess;
 	glm::vec3 emission; //object emits light
-	int opacity;
-	int index_of_refraction; //how much light bends when entering the material
+	float opacity;
+	float index_of_refraction; //how much light bends when entering the material
 	int illumination_model; //illumination model used by the material
 };
 //end of structs---------------------------------------------------------------------------------
@@ -142,19 +150,26 @@ void checkGLError(const char* location)
 
 //Namespaces--------------------------------------------------------------------------------------
 namespace Texture_slots {
-	std::vector<Texture> loaded_textures; //to avoid loading duplicated textures, inclues all textures bound or unbound.
+	std::vector<Texture> loaded_textures; //to avoid loading duplicated textures, includes all textures bound or unbound.
+	std::stack<int> deleted_textures;
 
 	unsigned int bound_slots[TEXTURE_SLOTS] = { 0 };//active texture slots like GL_TEXTURE0,for index 0 means GL_TEXTURE0 and var is texture id
 
 	unsigned int slot_age[TEXTURE_SLOTS] = { 0 };//to track usage age of slots for replacement if needed
 
-	void new_texture_loaded(Texture texture)
+	void new_texture_loaded(const Texture& texture)
 	{
 		if(loaded_textures.capacity()<100)
 			loaded_textures.reserve(100);
 
+		if(deleted_textures.empty())
+			loaded_textures.push_back(texture);
+		else
+		{
+			loaded_textures[deleted_textures.top()] = texture;
+			deleted_textures.pop();
+		}
 
-		loaded_textures.push_back(texture);
 	}
 
 	Texture* get_loaded_texture(const std::string& path)
@@ -193,7 +208,7 @@ namespace Texture_slots {
 		return oldest_index;
 	}
 
-	int get_index_of_bound_slot(unsigned int texture_id)
+	int get_index_of_bound_slot(const unsigned int texture_id)
 	{
 		for (int i = 0; i < TEXTURE_SLOTS; ++i) {
 			if (bound_slots[i] == texture_id) {
@@ -203,7 +218,7 @@ namespace Texture_slots {
 		return -1;
 	}
 
-	int get_last_empty_space()//becouse slot 0 is mostly used during other texture bindings we start searching from last slot
+	int get_last_empty_space()//because slot 0 is mostly used during other texture bindings we start searching from last slot
 	{
 		for (int i = TEXTURE_SLOTS - 1; i >= 0; --i) {
 			if (bound_slots[i] <= 0) {
@@ -213,7 +228,7 @@ namespace Texture_slots {
 		return -1;
 	}
 
-	void unbound_texture(int slot_index)
+	void unbound_texture(const int slot_index)
 	{
 		if (slot_index >= 0 && slot_index < TEXTURE_SLOTS)
 		{
@@ -224,7 +239,7 @@ namespace Texture_slots {
 		}
 	}
 
-	int bound_texture(unsigned int texture_id)
+	int bound_texture(const unsigned int texture_id)
 	{
 		int slot_index = get_index_of_bound_slot(texture_id);
 		if (slot_index != -1) {
@@ -246,6 +261,24 @@ namespace Texture_slots {
 		bound_slots[slot_index] = texture_id;
 		slot_age[slot_index] = 0; // Reset age since it's just been used
 		return slot_index;
+	}
+
+	void delete_texture(const unsigned int texture_id)
+	{
+		if (const int slot_index = get_index_of_bound_slot(texture_id); slot_index != -1)
+		{
+			unbound_texture(slot_index);
+		}
+
+		for (int i = 0; i < loaded_textures.size(); ++i)
+		{
+			if (loaded_textures[i].id == texture_id)
+			{
+				deleted_textures.push(i);
+			}
+		}
+
+
 	}
 
 }

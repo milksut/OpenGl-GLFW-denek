@@ -24,7 +24,7 @@ public:
         std::string fragmentCode;
         std::ifstream vShaderFile;
         std::ifstream fShaderFile;
-        // ensure ifstream objects can throw exceptions:
+        // ensure stream objects can throw exceptions:
         vShaderFile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
         fShaderFile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
         try
@@ -70,6 +70,47 @@ public:
         // delete the shaders as they're linked into our program now and no longer necessary
         glDeleteShader(vertex);
         glDeleteShader(fragment);
+    }
+    // adding geometry shader is optional
+    // ------------------------------------------------------------------------
+    void add_geometry_shader(const char* geometryPath)
+    {
+        std::string geoCode;
+        std::ifstream geoShaderFile;
+
+        geoShaderFile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
+
+        try
+        {
+            // open files
+            geoShaderFile.open(geometryPath);
+            std::stringstream geoShaderStream;
+            // read file's buffer contents into streams
+            geoShaderStream << geoShaderFile.rdbuf();
+            // close file handlers
+            geoShaderFile.close();
+            // convert stream into string
+            geoCode = geoShaderStream.str();
+        }
+        catch (std::ifstream::failure& e)
+        {
+            std::cout << "ERROR::SHADER::FILE_NOT_SUCCESSFULLY_READ: " << e.what() << std::endl;
+        }
+
+        const char* geoShaderCode = geoCode.c_str();
+
+        unsigned int geometry;
+
+        geometry = glCreateShader(GL_GEOMETRY_SHADER);
+        glShaderSource(geometry, 1, &geoShaderCode, NULL);
+        glCompileShader(geometry);
+        checkCompileErrors(geometry, "GEOMETRY");
+
+        glAttachShader(ID, geometry);
+        glLinkProgram(ID);
+        checkCompileErrors(ID, "PROGRAM");
+
+        glDeleteShader(geometry);
     }
     // activate the shader
     // ------------------------------------------------------------------------

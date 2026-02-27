@@ -3,7 +3,7 @@
 #include "Camera_test.h"
 #include "Some_functions.h"
 #include "TextRenderer.h"
-#include "game_object_basic.h"
+#include "game_object_basic_model.h"
 
 
 const double Target_fps = 144;
@@ -165,6 +165,7 @@ int main()
 		width, height, 16, 32,
 		"Shaders/Vertex_shaders/Text_render_vertex.vert",
 		"Shaders/Fragment_shaders/Text_render_fragment.frag",
+		"Shaders/Geometry_shaders/Text_render_geometry.geom",
 		0.005f);
 
 	printer->change_deleted_colors(0, glm::vec4(0.0f, 0.0f, 0.0f, 1.0f), 1.5f, glm::vec4(1.0f, 1.0f, 1.0f, 0.1f));
@@ -286,6 +287,7 @@ int main()
 			draw_call_count = 0;
 		}
 		printer->render_text(fps_text, -1, 0.9, 2.0f);
+		checkGLError("After drawing fps");
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();
