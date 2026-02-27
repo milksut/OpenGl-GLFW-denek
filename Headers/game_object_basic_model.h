@@ -192,6 +192,31 @@ private:
 			}
 		}
 
+		///this function is dangerous! don't use if you don't know what you are doing
+		///this function needs to be refactored, dont depend on it. //TODO:
+		void update_mesh(const std::vector<vertex_data> &vertices,const std::vector<unsigned int> &indices,
+			const std::vector<Texture>& textures, bool use_dynamic_draw = false)
+		{
+			this->vertices = vertices;
+			this->indices = indices;
+			this->textures = textures;
+
+			glBindVertexArray(VAO);
+			glBindBuffer(GL_ARRAY_BUFFER, VBO_Mesh);
+			glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(vertex_data), nullptr,
+				use_dynamic_draw ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW);//new
+
+			glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(vertex_data), &vertices[0],
+				use_dynamic_draw ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW);//new
+
+			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+			glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), nullptr,
+				use_dynamic_draw ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW);//orphan
+
+			glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), &indices[0],
+				use_dynamic_draw ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW);//new
+		}
+
 		Mesh(const Mesh&) = delete;// Delete copy constructor
 
 		Mesh& operator=(const Mesh&) = delete;// Delete copy assignment operator

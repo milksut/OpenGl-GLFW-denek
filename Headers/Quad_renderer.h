@@ -83,8 +83,7 @@ public:
 		}
 		else
 		{
-			quad_model.Meshes[0]->vertices = data;
-			quad_model.Meshes[0]->textures = textures;
+			quad_model.Meshes[0]->update_mesh(data, empty, textures, true);
 		}
 
 		quad_model.draw(*shader, region);
