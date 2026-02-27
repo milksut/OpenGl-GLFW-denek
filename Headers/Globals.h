@@ -245,6 +245,7 @@ namespace Texture_slots {
 		glBindTexture(GL_TEXTURE_2D, texture_id);
 		bound_slots[slot_index] = texture_id;
 		slot_age[slot_index] = 0; // Reset age since it's just been used
+		return slot_index;
 	}
 
 }
