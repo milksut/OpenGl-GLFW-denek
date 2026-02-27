@@ -51,8 +51,8 @@ private:
 
 		void bind_textures(Shader shader)
 		{
-			//these are sended as uniforms to shader as sampler2d arrays like TEXTURE[], DIFFUSE[] etc. What name is defined in globals.h
-			//sended data amount is sended as int array named TEX_COUNTS[], they are in order of enum TextureType
+			//these are sent as uniforms to shader as sampler 2d arrays like TEXTURE[], DIFFUSE[] etc. What name is defined in globals.h
+			//sent data amount is sent as int array named TEX_COUNTS[], they are in order of enum TextureType
 			std::array<std::vector<int>,Tex_type_amount> texture_locations;
 			for(std::vector<int> &var : texture_locations)
 			{
@@ -60,12 +60,12 @@ private:
 			}
 			int counts[Tex_type_amount] = { 0 };
 
-			for (int i = 0; i < TEXTURE_SLOTS && i < textures.size(); i++)
+			for (int i = 0; i < TEXTURE_SLOTS && i < main_textures.size(); i++)
 			{
-				int slot_index = Texture_slots::bound_texture(textures[i].id);
-				counts[textures[i].type]++;
+				int slot_index = Texture_slots::bound_texture(main_textures[i].id);
+				counts[main_textures[i].type]++;
 
-				texture_locations[textures[i].type].push_back(slot_index);
+				texture_locations[main_textures[i].type].push_back(slot_index);
 			}
 			
 			shader.setInt("TEX_COUNTS", counts, Tex_type_amount);
@@ -129,9 +129,9 @@ private:
 
 
 	public:
-		std::vector<vertex_data>  vertices;
-		std::vector<unsigned int> indices;
-		std::vector<Texture>      textures;
+		std::vector<vertex_data>  main_vertices;
+		std::vector<unsigned int> main_indices;
+		std::vector<Texture>      main_textures;
 		std::shared_ptr<class_region> last_bound_region = nullptr;
 
 		//material properties for this mesh:
@@ -141,7 +141,7 @@ private:
 		unsigned int VAO, VBO_Mesh, EBO;
 
 		Mesh(const std::vector<vertex_data> &vertices,const std::vector<unsigned int> &indices,const std::vector<Texture>& textures)
-			:instance_attributes(VAO_MAX_ATTRIB_AMOUNT, empty_attrib), vertices(vertices), indices(indices), textures(textures)
+			:instance_attributes(VAO_MAX_ATTRIB_AMOUNT, empty_attrib), main_vertices(vertices), main_indices(indices), main_textures(textures)
 		{
 
 			glGenVertexArrays(1, &VAO);
@@ -159,7 +159,7 @@ private:
 
 			// vertex positions
 			glEnableVertexAttribArray(0);
-			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(vertex_data), (void*)0);
+			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(vertex_data), (void*)nullptr);
 			instance_attributes[0] = { VBO_Mesh,0,0,3,0 };
 
 			// vertex texture coords
@@ -184,7 +184,7 @@ private:
 			
 			glDeleteVertexArrays(1, &VAO);
 
-			textures.clear();
+			main_textures.clear();
 
 			for(std::shared_ptr<class_region> ptr : shared_regions)
 			{
@@ -197,9 +197,9 @@ private:
 		void update_mesh(const std::vector<vertex_data> &vertices,const std::vector<unsigned int> &indices,
 			const std::vector<Texture>& textures, bool use_dynamic_draw = false)
 		{
-			this->vertices = vertices;
-			this->indices = indices;
-			this->textures = textures;
+			this->main_vertices = vertices;
+			this->main_indices = indices;
+			this->main_textures = textures;
 
 			glBindVertexArray(VAO);
 			glBindBuffer(GL_ARRAY_BUFFER, VBO_Mesh);
@@ -427,13 +427,14 @@ private:
 				}
 				glBindBuffer(GL_ARRAY_BUFFER, 0);
 			}
-			if(indices.size()> 0)
+			if(main_indices.size()> 0)
 			{
-				glDrawElementsInstanced(GL_TRIANGLES, static_cast<unsigned int>(indices.size()), GL_UNSIGNED_INT, 0, amount);
+				glDrawElementsInstanced(GL_TRIANGLES, static_cast<unsigned int>(main_indices.size()),
+					GL_UNSIGNED_INT, nullptr, amount);
 			}
 			else
 			{
-				glDrawArraysInstanced(GL_POINTS, 0, vertices.size(), amount);
+				glDrawArraysInstanced(GL_POINTS, 0, main_vertices.size(), amount);
 			}
 			draw_call_count++;
 			glBindVertexArray(0);
