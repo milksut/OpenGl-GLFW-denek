@@ -9,6 +9,9 @@ external/
 # CLion specific
 .idea/
 
+#Visual Studio 
+.vs/
+
 # Compiled binaries
 *.o
 *.a

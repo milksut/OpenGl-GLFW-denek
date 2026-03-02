@@ -2,11 +2,6 @@
 set(CMAKE_POLICY_VERSION_MINIMUM 3.5)
 project ("OpenGl-CMake")
 
-if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    set(CMAKE_CXX_FLAGS_DEBUG "-g")
-endif()
-
-
 
 # 1. BASIC SETTINGS
 set(FETCHCONTENT_BASE_DIR "${CMAKE_SOURCE_DIR}/external")
@@ -14,9 +9,13 @@ set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
 
 if(MSVC)
     set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+    # Enable PDB generation for all configs
+    add_compile_options(/Zi)
+    add_link_options(/DEBUG)
+else()
+    # GCC/Clang
+    set(CMAKE_CXX_FLAGS_DEBUG "-g")
 endif()
-
-include(FetchContent)
 
 # -------------------------------------------------------------------
 # 2. LIBRARIES (FETCHCONTENT)
@@ -79,10 +78,9 @@ target_include_directories(stb INTERFACE ${stb_SOURCE_DIR})
 
 # Only add files that you have created yourself here.
 add_executable(${PROJECT_NAME} 
-    "OpenGl-CMake.cpp" 
-    "OpenGl-CMake.h"
     "model_loading_test.cpp"
- "stb_setup.cpp")
+    "stb_setup.cpp"
+)
 
 # -------------------------------------------------------------------
 # 4. LINKING & INCLUDES
