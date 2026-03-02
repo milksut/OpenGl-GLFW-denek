@@ -265,7 +265,8 @@ namespace Texture_slots {
 
 	void delete_texture(const unsigned int texture_id)
 	{
-		if (const int slot_index = get_index_of_bound_slot(texture_id); slot_index != -1)
+		const int slot_index = get_index_of_bound_slot(texture_id);
+		if ( slot_index != -1)
 		{
 			unbound_texture(slot_index);
 		}

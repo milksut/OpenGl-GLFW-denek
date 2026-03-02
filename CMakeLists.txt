@@ -8,7 +8,7 @@ endif()
 
 
 
-# 1. TEMEL AYARLAR
+# 1. BASIC SETTINGS
 set(FETCHCONTENT_BASE_DIR "${CMAKE_SOURCE_DIR}/external")
 set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE) 
 
@@ -19,17 +19,17 @@ endif()
 include(FetchContent)
 
 # -------------------------------------------------------------------
-# 2. KÜTÜPHANELER (FETCHCONTENT)
+# 2. LIBRARIES (FETCHCONTENT)
 # -------------------------------------------------------------------
 
-# --- GLAD (OpenGL Yükleyici) ---
-# GLAD'ı CMake ile uyumlu olan bu repodan çekiyoruz.
+# --- GLAD (OpenGL Installer) ---
+# We are pulling GLAD from this repository, which is compatible with CMake.
 FetchContent_Declare(
   glad
   GIT_REPOSITORY https://github.com/Dav1dde/glad.git
-  GIT_TAG v0.1.36 # En stabil sürüm
+  GIT_TAG v0.1.36 # Most stable version
 )
-# GLAD Ayarları: Sadece GL sürümünü belirtiyoruz.
+# GLAD Settings: We only specify the GL version.
 set(GLAD_INSTALL OFF CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(glad)
 
@@ -70,15 +70,14 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(stb)
 
-# STB için bir "interface" kütüphanesi oluşturalım (çünkü kendisi hazır bir CMake projesi değil)
+# Let's create an "interface" library for STB (because it's not a ready-made CMake project).
 add_library(stb INTERFACE)
 target_include_directories(stb INTERFACE ${stb_SOURCE_DIR})
 # -------------------------------------------------------------------
-# 3. SENİN DOSYALARIN
+# 3. YOUR FILES
 # -------------------------------------------------------------------
 
-# Buraya sadece kendi yazdığın dosyaları ekle.
-# glad.c artık otomatik derlendiği için buraya eklemene gerek KALMADI.
+# Only add files that you have created yourself here.
 add_executable(${PROJECT_NAME} 
     "OpenGl-CMake.cpp" 
     "OpenGl-CMake.h"
@@ -86,10 +85,10 @@ add_executable(${PROJECT_NAME}
  "stb_setup.cpp")
 
 # -------------------------------------------------------------------
-# 4. BAĞLANTILAR
+# 4. LINKING & INCLUDES
 # -------------------------------------------------------------------
 
-# glad::glad ekleyerek tüm OpenGL fonksiyonlarını projeye dahil ediyoruz.
+# By adding `glad::glad`, we include all OpenGL functions in the project.
 target_link_libraries(${PROJECT_NAME} PRIVATE 
     glad
     glfw 
@@ -100,7 +99,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
 
 target_include_directories(${PROJECT_NAME} PRIVATE 
     ${stb_SOURCE_DIR}
-    "Headers"      # headers klasörünün içindeki dosyaları direkt bulmasını sağlar
+    "Headers"     # This allows the system to directly find the files inside the headers folder.
     .
 )
 

@@ -561,8 +561,8 @@ private:
 			aiColor3D color;
 			float value;
 			int illum;
-
-			if (aiString name; AI_SUCCESS == material->Get(AI_MATKEY_NAME, name))
+			aiString name;
+			if (AI_SUCCESS == material->Get(AI_MATKEY_NAME, name))
 				mat_props.uses_material = true;
 
 			if (AI_SUCCESS == material->Get(AI_MATKEY_COLOR_AMBIENT, color))
