@@ -17,7 +17,7 @@ if(MSVC)
 else()
     # GCC/Clang
     set(CMAKE_CXX_FLAGS_DEBUG "-g")
-    set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O3 -g")
+    set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O2 -g")
 endif()
 
 include(FetchContent)
@@ -69,6 +69,7 @@ FetchContent_Declare(
 set(ASSIMP_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(ASSIMP_INSTALL OFF CACHE BOOL "" FORCE)
 set(ASSIMP_BUILD_ASSIMP_VIEW OFF CACHE BOOL "" FORCE)
+set(ASSIMP_WARNINGS_AS_ERRORS OFF CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(assimp)
 
 # --- STB (Image Loading) ---
