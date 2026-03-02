@@ -14,4 +14,5 @@
 - X11 -> Linux kullanıcılarının kurması gerekiyor
 
 - After the initial download take out of the comment this line in CMakelists.txt
-set(FETCHCONTENT_FULLY_DISCONNECTED ON)
+  
+"set(FETCHCONTENT_FULLY_DISCONNECTED ON)"
