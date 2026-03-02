@@ -181,7 +181,7 @@ int main()
 	game_object_basic_model backpack;
 	//backpack.import_model_from_file("C:\\Users\\altay\\Desktop\\pull_from_this_easy\\Backpack.obj");
 
-	backpack.import_model_from_file("/home/altay2510tr/Desktop/opengl-asset/Tree1.obj");
+	backpack.import_model_from_file("C:\\Users\\altay\\Desktop\\data\\forest_fire_assets\\Tree1.obj");
 	
 	//-*-*-*-*-*-*-*-**-*-*-*-*-**-*-*-*-*-*-*-*-*-*-*-*-*-*-*-**-*-*-*-*-*-*-*-*
 	int grid_amount = 60;

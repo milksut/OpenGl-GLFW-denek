@@ -1,6 +1,6 @@
 ﻿cmake_minimum_required (VERSION 3.15)
 set(CMAKE_POLICY_VERSION_MINIMUM 3.5)
-project ("OpenGl-CMake")
+project ("Decoy_Engine")
 
 
 # 1. BASIC SETTINGS
@@ -12,10 +12,15 @@ if(MSVC)
     # Enable PDB generation for all configs
     add_compile_options(/Zi)
     add_link_options(/DEBUG)
+
+    set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELEASE} /O2 /arch:AVX2 /GL")
 else()
     # GCC/Clang
     set(CMAKE_CXX_FLAGS_DEBUG "-g")
+    set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O3 -g")
 endif()
+
+include(FetchContent)
 
 # -------------------------------------------------------------------
 # 2. LIBRARIES (FETCHCONTENT)
@@ -30,7 +35,12 @@ FetchContent_Declare(
 )
 # GLAD Settings: We only specify the GL version.
 set(GLAD_INSTALL OFF CACHE BOOL "" FORCE)
+
+set(GLAD_PROFILE "core")
+set(GLAD_API "gl=3.3")
+
 FetchContent_MakeAvailable(glad)
+
 
 # --- GLFW ---
 FetchContent_Declare(

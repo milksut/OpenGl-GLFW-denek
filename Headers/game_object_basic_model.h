@@ -150,12 +150,27 @@ private:
 
 
 			glBindVertexArray(VAO);
-			glBindBuffer(GL_ARRAY_BUFFER, VBO_Mesh);
+			if (vertices.size() > 0)
+			{
+				glBindBuffer(GL_ARRAY_BUFFER, VBO_Mesh);
+				glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(vertex_data), &vertices[0], GL_STATIC_DRAW);	
+			}
+			else
+			{
+				printf("Mesh - a mesh with empty vertices created, is this intentional?");
+			}
+			
 
-			glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(vertex_data), &vertices[0], GL_STATIC_DRAW);
-
-			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-			glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), &indices[0], GL_STATIC_DRAW);
+			if (indices.size() > 0)
+			{
+				glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+				glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), &indices[0], GL_STATIC_DRAW);
+			}
+			else
+			{
+				printf("Mesh - a mesh with empty indices created, is this intentional?");
+			}
+			
 
 			// vertex positions
 			glEnableVertexAttribArray(0);
@@ -202,19 +217,39 @@ private:
 			this->main_textures = textures;
 
 			glBindVertexArray(VAO);
-			glBindBuffer(GL_ARRAY_BUFFER, VBO_Mesh);
-			glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(vertex_data), nullptr,
-				use_dynamic_draw ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW);//new
+			
 
-			glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(vertex_data), &vertices[0],
-				use_dynamic_draw ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW);//new
+			if (vertices.size() > 0)
+			{	
+				glBindBuffer(GL_ARRAY_BUFFER, VBO_Mesh);
 
-			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-			glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), nullptr,
-				use_dynamic_draw ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW);//orphan
+				glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(vertex_data), nullptr,
+					use_dynamic_draw ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW);//new
 
-			glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), &indices[0],
-				use_dynamic_draw ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW);//new
+				glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(vertex_data), &vertices[0],
+					use_dynamic_draw ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW);//new
+			}
+			else
+			{
+				printf("Mesh - a mesh updated with empty vertices, is this intentional?\n");
+			}
+
+
+			if (indices.size() > 0)
+			{
+				glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+
+				glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), nullptr,
+					use_dynamic_draw ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW);//orphan
+
+				glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), &indices[0],
+					use_dynamic_draw ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW);//new
+			}
+			else
+			{
+				//printf("Mesh - a mesh updated with empty indices, is this intentional?\n");
+				//yes - it is
+			}
 		}
 
 		Mesh(const Mesh&) = delete;// Delete copy constructor

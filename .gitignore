@@ -16,4 +16,4 @@ external/
 *.o
 *.a
 *.so
-OpenGl-CMake
+Decoy_Engine.*
