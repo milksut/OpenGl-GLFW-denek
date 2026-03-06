@@ -95,7 +95,7 @@ target_include_directories(stb INTERFACE ${stb_SOURCE_DIR})
 add_executable(${PROJECT_NAME} 
     "model_loading_test.cpp"
     "stb_setup.cpp"
- "Headers/The_event_manager.h")
+ )
 
 # -------------------------------------------------------------------
 # 4. LINKING & INCLUDES
