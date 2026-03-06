@@ -22,7 +22,10 @@
 #include <vector>
 #include <memory>
 #include <stack>
+#include <functional>
+
 #include <mutex>
+#include <condition_variable>
 #include <thread>
 #include <queue>
 //end of includes---------------------------------------------------------------------------------
@@ -290,5 +293,65 @@ namespace Texture_slots {
 namespace Shader_variables
 {
 	unsigned int current_shader_id = 0;
+}
+
+namespace event_management
+{
+	unsigned int event_id_counter = 0;
+
+	//Fill this part yourself
+	enum Event_type
+	{
+		Null,
+		Mouse_moved, Mouse_pressed, Mouse_released,
+		Key_pressed, Key_released,
+	};
+
+	enum class Event_timing { Immediate, Queued };
+	enum class Event_scope { Targeted, Announcement };
+
+	//forward declaration
+	class Event;
+
+	//must be implamented by anything that wants to use events,
+	//used when subscribeing a channel on event manager
+	//can be lambada, like if you don't want to bind it to a class
+	using Event_receiver_shared = std::shared_ptr<std::function<void(const Event&)>>;
+
+	//doesn't keep the receiver alive
+	using Event_receiver_weak = std::weak_ptr<std::function<void(const Event&)>>;
+
+	//base event class, not designed to use at it is,
+	//create subclases to use it
+	class Event
+	{
+
+	public:
+		const unsigned int id = event_id_counter++;
+		Event_timing timing = Event_timing::Immediate;
+		Event_scope scope = Event_scope::Announcement;
+		Event_type type = Event_type::Null;
+		Event_receiver_weak target_id;
+
+		Event(const Event_timing timing, const Event_type type)
+		{
+			this->timing = timing;
+			this->type = type;
+		}
+		Event(const Event_timing timing, const Event_receiver_shared target_id, const Event_type type)
+		{
+			this->timing = timing;
+			this->target_id = target_id;
+			this->scope = Event_scope::Targeted;
+			this->type = type;
+		}
+
+		virtual void execute() = 0;
+		virtual ~Event() {}
+
+	};
+
+
+
 }
 //end of namespaces-------------------------------------------------------------------------------

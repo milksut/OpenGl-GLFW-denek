@@ -1,6 +1,7 @@
  Build folders
 cmake-build-debug/
 cmake-build-release/
+cmake-build-relwithdebinfo/
 build/
 
 # External/downloaded libraries (no need to upload, CMake downloads them)
