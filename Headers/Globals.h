@@ -22,6 +22,9 @@
 #include <vector>
 #include <memory>
 #include <stack>
+#include <mutex>
+#include <thread>
+#include <queue>
 //end of includes---------------------------------------------------------------------------------
 
 
@@ -282,5 +285,10 @@ namespace Texture_slots {
 
 	}
 
+}
+
+namespace Shader_variables
+{
+	unsigned int current_shader_id = 0;
 }
 //end of namespaces-------------------------------------------------------------------------------
