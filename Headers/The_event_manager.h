@@ -50,10 +50,10 @@ private:
                         }
                         else if (immediate_event->timing == Event_timing::Immediate)
                         {
-                            //TODO: if another immediate event cames during this, it throws an segmentation fault
-                            lock.unlock();
+                            //TODO: if another immediate event comes during this, it throws an segmentation fault
+                            //lock.unlock();
                             handle_event(std::move(immediate_event));
-                            lock.lock();
+                            //lock.lock();
                         }
                         else
                         {
