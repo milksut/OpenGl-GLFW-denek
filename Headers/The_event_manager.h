@@ -1,8 +1,10 @@
 #pragma once
 
+#include <stdexcept>
+
 #include "Globals.h"
 
-using namespace event_management;
+using namespace Event_management;
 
 class event_manager
 {
@@ -22,6 +24,8 @@ private:
         std::condition_variable signal;
         bool running = true;
 
+        std::shared_ptr<Channel> downstream = nullptr; // next channel to receive the event if this chanel didn't consume it
+
         void run() {
             while (running) {
                 {
@@ -35,15 +39,31 @@ private:
                         break;
 
 
-                    //TODO: dont forget to check if receiver is alive before directing event!
-                    //TODO: also delete it from subscribed list.
-
                     if (immediate_event != nullptr )
                     {
-                        //TODO: direct the event
+
+                        if(immediate_event->timing == Event_timing::Queued)
+                        {
+                            event_queue.push(std::move(immediate_event));
+                            printf("The_event_manager - Queued event in immediate? is this intentional?\n"
+                                       "moved it into que!");
+                        }
+                        else if (immediate_event->timing == Event_timing::Immediate)
+                        {
+                            //TODO: if another immediate event cames during this, it throws an segmentation fault
+                            lock.unlock();
+                            handle_event(std::move(immediate_event));
+                            lock.lock();
+                        }
+                        else
+                        {
+                            throw std::runtime_error("The_event_manager - Some unknown timing type :" + std::to_string((int)immediate_event->timing));
+                        }
 
                         //Don't forget to move the event if needed before reset, or it will be destroyed!
-                        immediate_event.reset();
+                        //Probably unnecessary, just as a failsafe
+                        if(immediate_event!=nullptr)
+                            immediate_event.reset();
                     }
                     else
                     {
@@ -52,13 +72,89 @@ private:
                             std::unique_ptr<Event> event = std::move(event_queue.front());
                             event_queue.pop();
 
-                            //TODO: direct the event
+                            if(event->timing == Event_timing::Immediate)
+                            {
+                                printf("The_event_manager - Immediate event in queue? is this intentional?\n"
+                                       "turned it into Queued!");
+                                event->timing = Event_timing::Queued;
+                            }
+
+                            if (event->timing == Event_timing::Queued)
+                            {
+                                lock.unlock();
+                                handle_event(std::move(event));
+                                lock.lock();
+                            }
+                            else
+                            {
+                                throw std::runtime_error("The_event_manager - Some unknown timing type :" + std::to_string((int)event->timing));
+                            }
                         }
                     }
+                }
+            }
+        }
 
+        void handle_event(std::unique_ptr<Event> event)
+        {
+            if (event->scope == Event_scope::Targeted)
+            {
+                const Event_receiver_shared shared_pointer = event->target_receiver.lock();
+                if (shared_pointer != nullptr)
+                {
+                    //THE event call
+                    (*shared_pointer)(*event);
+                }
+                else
+                {
+                    throw std::runtime_error("The_event_manager - A targeted event has no target receiver!");
+                }
+                if (event->is_alive)
+                {
+                    printf("The_event_manager - targeted event is not consumed? is this intentional?\n"
+                           "consuming the event!");
+                    event->is_alive = false;
+                }
+            }
+            else if (event->scope == Event_scope::Announcement)
+            {
+                const Event_type type = event->type;
+
+                std::vector<Event_receiver_weak>& vec = subscribers[type];
+                vec.erase(std::remove_if(vec.begin(), vec.end(),
+                    [](const Event_receiver_weak& w){ return w.expired(); }),
+                    vec.end());
+
+                for (const Event_receiver_weak& receiver : vec)
+                {
+                    const Event_receiver_shared shared_pointer = receiver.lock();
+                    if(shared_pointer != nullptr)
+                    {
+                        (*shared_pointer)(*event);
+                    }
+                    else
+                    {
+                        throw std::runtime_error("The_event_manager - I dont know how can this happen");
+                    }
                 }
 
+                if(event->is_alive)
+                {
+                    if (downstream != nullptr)
+                    {
+                        downstream->throw_event(std::move(event));
+                    }
+                    else
+                    {
+                        event.reset();
+                    }
+                }
             }
+            else
+            {
+                throw std::runtime_error("The_event_manager - Some unknown scope type :" + std::to_string((int)event->scope));
+            }
+
         }
 
     public:
@@ -99,6 +195,11 @@ private:
             }
         }
 
+        void change_downstream(const std::shared_ptr<Channel>& new_downstream = nullptr)
+        {
+            this->downstream = new_downstream;
+        }
+
         void tick()
         {
             signal.notify_one();
@@ -106,7 +207,94 @@ private:
 
     };
 
-    std::vector<Channel> channels;
+    std::unordered_map<std::string, std::shared_ptr<Channel>> channels;
+    std::mutex channels_mutex;
+
 public:
 
+    // Creates a channel if it doesn't exist, returns false if name already taken
+    bool create_channel(const std::string& name)
+    {
+        std::lock_guard<std::mutex> lock(channels_mutex);
+        if (channels.count(name))
+        {
+            printf("The_event_manager - - channel '%s' already exists!\n", name.c_str());
+            return false;
+        }
+        channels[name] = std::make_shared<Channel>();
+        return true;
+    }
+
+    void destroy_channel(const std::string& name)
+    {
+        std::lock_guard<std::mutex> lock(channels_mutex);
+        const auto it = channels.find(name);
+        if (it == channels.end())
+        {
+            printf("The_event_manager - - channel '%s' not exists!\n", name.c_str());
+            return;
+        }
+        channels.erase(it);
+    }
+
+    void subscribe(const std::string& channel_name, const Event_type event_type, const Event_receiver_shared& receiver)
+    {
+        std::lock_guard<std::mutex> lock(channels_mutex);
+        const auto it = channels.find(channel_name);
+        if (it == channels.end())
+        {
+            printf("The_event_manager - subscribe failed, channel '%s' not found!\n", channel_name.c_str());
+            return;
+        }
+        it->second->subscribe(event_type, receiver);
+    }
+
+    void throw_event(const std::string& channel_name, std::unique_ptr<Event> event)
+    {
+        std::lock_guard<std::mutex> lock(channels_mutex);
+        const auto it = channels.find(channel_name);
+        if (it == channels.end())
+        {
+            printf("The_event_manager - throw_event failed, channel '%s' not found!\n", channel_name.c_str());
+            return;
+        }
+        it->second->throw_event(std::move(event));
+    }
+
+    void tick(const std::string& channel_name)
+    {
+        std::lock_guard<std::mutex> lock(channels_mutex);
+        const auto it = channels.find(channel_name);
+        if (it == channels.end())
+        {
+            printf("The_event_manager - tick failed, channel '%s' not found!\n", channel_name.c_str());
+            return;
+        }
+        it->second->tick();
+    }
+
+    void tick_all()
+    {
+        std::lock_guard<std::mutex> lock(channels_mutex);
+        for (auto& [name, channel] : channels)
+        {
+            channel->tick();
+        }
+    }
+
+    // connect upstream -> downstream, pass nullptr as downstream to disconnect
+    bool connect(const std::string& upstream_name, const std::shared_ptr<Channel>& downstream = nullptr)
+    {
+        std::lock_guard<std::mutex> lock(channels_mutex);
+
+        const auto upstream_it = channels.find(upstream_name);
+        if (upstream_it == channels.end())
+        {
+            printf("The_event_manager - connect failed, upstream '%s' not found!\n", upstream_name.c_str());
+            return false;
+        }
+
+        upstream_it->second->change_downstream(downstream);
+        return true;
+    }
 };

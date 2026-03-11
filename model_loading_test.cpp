@@ -5,6 +5,10 @@
 #include "TextRenderer.h"
 #include "game_object_basic_model.h"
 
+#include "The_event_manager.h"
+#include "Events/Basic_event_test.h"
+
+
 
 const double Target_fps = 144;
 const double Target_frame_time = 1.0 / Target_fps;
@@ -17,6 +21,7 @@ float mouse_lastX = width / 2, mouse_lastY = height / 2;
 
 const float mouse_sensitivity = 0.3f;
 
+event_manager manager;
 
 camera_test camera(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f));
 
@@ -82,6 +87,7 @@ void processInput(GLFWwindow* window, float camera_speed, camera_test& camera)
 	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
 	{
 		changes[0] = true; // front change
+		manager.throw_event("input", std::make_unique<Key_event>(GLFW_KEY_W));
 	}
 
 	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
@@ -145,6 +151,7 @@ void mouse_callback(GLFWwindow* window, double x_pos, double y_pos)
 
 	camera.process_mouse_movement(xoffset, yoffset, mouse_sensitivity);
 
+	manager.throw_event("input", std::make_unique<Mouse_move_event>(x_pos, y_pos));
 }
 
 int main()
@@ -249,6 +256,31 @@ int main()
 
 	checkGLError("After loading light");
 
+	//-------------------------------------------------------------------------------------------------------------
+
+	manager.create_channel("input");
+
+	// subscriber that prints mouse movement
+	Event_receiver_shared mouse_receiver = make_receiver([](const Event& e)
+		{
+			const auto& mouse = dynamic_cast<const Mouse_move_event&>(e);
+			printf("Mouse moved: %.2f, %.2f\n", mouse.x, mouse.y);
+			const_cast<Mouse_move_event&>(mouse).is_alive = false; // consume it
+		});
+
+	manager.subscribe("input", Event_type::Mouse_moved, mouse_receiver);
+
+	// subscriber that prints key presses
+	Event_receiver_shared key_receiver = make_receiver([](const Event& e)
+		{
+			const auto& key = dynamic_cast<const Key_event&>(e);
+			printf("Key pressed: %d\n", key.key_code);
+			const_cast<Key_event&>(key).is_alive = false;
+		});
+
+	manager.subscribe("input", Event_type::Key_pressed, key_receiver);
+
+	//-------------------------------------------------------------------------------------------------------------
 
 	glEnable(GL_DEPTH_TEST); // Enable depth testing for 3D rendering
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
@@ -272,7 +304,6 @@ int main()
 		shader.setMatrix4fv("projection", glm::value_ptr(camera.projection));
 
 
-
 		backpack.draw(shader, grid_region, grid_amount * grid_amount);
 		checkGLError("After drawing grid backpack");
 
@@ -285,6 +316,8 @@ int main()
 			fps_text = "FPS: " + std::to_string(y);
 			printf("Draw calls per second : %d\n",draw_call_count);
 			draw_call_count = 0;
+
+			manager.tick("input");
 		}
 		printer->render_text(fps_text, -1, 0.9, 2.0f);
 		checkGLError("After drawing fps");

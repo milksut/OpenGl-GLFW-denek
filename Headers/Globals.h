@@ -295,7 +295,7 @@ namespace Shader_variables
 	unsigned int current_shader_id = 0;
 }
 
-namespace event_management
+namespace Event_management
 {
 	unsigned int event_id_counter = 0;
 
@@ -321,6 +321,12 @@ namespace event_management
 	//doesn't keep the receiver alive
 	using Event_receiver_weak = std::weak_ptr<std::function<void(const Event&)>>;
 
+	template<typename T>
+	Event_receiver_shared make_receiver(T&& lambda)
+	{
+		return std::make_shared<std::function<void(const Event&)>>(std::forward<T>(lambda));
+	}
+
 	//base event class, not designed to use at it is,
 	//create subclases to use it
 	class Event
@@ -328,20 +334,23 @@ namespace event_management
 
 	public:
 		const unsigned int id = event_id_counter++;
+
 		Event_timing timing = Event_timing::Immediate;
 		Event_scope scope = Event_scope::Announcement;
 		Event_type type = Event_type::Null;
-		Event_receiver_weak target_id;
+		Event_receiver_weak target_receiver;
+
+		bool is_alive = true;
 
 		Event(const Event_timing timing, const Event_type type)
 		{
 			this->timing = timing;
 			this->type = type;
 		}
-		Event(const Event_timing timing, const Event_receiver_shared target_id, const Event_type type)
+		Event(const Event_timing timing, const Event_receiver_shared& target_receiver, const Event_type type)
 		{
 			this->timing = timing;
-			this->target_id = target_id;
+			this->target_receiver = target_receiver;
 			this->scope = Event_scope::Targeted;
 			this->type = type;
 		}
@@ -350,6 +359,8 @@ namespace event_management
 		virtual ~Event() {}
 
 	};
+
+
 
 
 
