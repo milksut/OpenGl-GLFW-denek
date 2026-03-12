@@ -276,9 +276,9 @@ public:
     void tick_all()
     {
         std::lock_guard<std::mutex> lock(channels_mutex);
-        for (auto& [name, channel] : channels)
+        for (auto& pair : channels)
         {
-            channel->tick();
+            pair.second->tick();
         }
     }
 
