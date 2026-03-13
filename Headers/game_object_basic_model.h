@@ -157,7 +157,7 @@ private:
 			}
 			else
 			{
-				printf("Mesh - a mesh with empty vertices created, is this intentional?");
+				LOG_WARNING("Mesh - a mesh with empty vertices created, is this intentional?");
 			}
 			
 
@@ -168,7 +168,7 @@ private:
 			}
 			else
 			{
-				printf("Mesh - a mesh with empty indices created, is this intentional?");
+				LOG_WARNING("Mesh - a mesh with empty indices created, is this intentional?");
 			}
 			
 
@@ -231,7 +231,7 @@ private:
 			}
 			else
 			{
-				printf("Mesh - a mesh updated with empty vertices, is this intentional?\n");
+				LOG_WARNING("Mesh - a mesh updated with empty vertices, is this intentional?");
 			}
 
 
@@ -492,7 +492,7 @@ private:
 			std::shared_ptr<Mesh> temp = process_mesh(mesh, scene, path);
 			parent_mesh.Meshes.push_back(temp);
 			Meshes.push_back(temp);
-			printf("Processed mesh: %s\n", mesh->mName.C_Str());
+			LOG_INFO(std::string("Processed mesh: ") + mesh->mName.C_Str());
 		}
 		//process childs
 		for (unsigned int i = 0; i < node->mNumChildren; i++)
@@ -652,9 +652,10 @@ public:
 
 	std::shared_ptr<class_region> reserve_class_region(int size_in_number)
 	{
-		if (Meshes.empty())
+		if (Meshes.empty()) {
+			LOG_FATAL("No meshes to reserve class region for.");
 			throw std::runtime_error("No meshes to reserve class region for.");
-
+		}
 		// Reserve region in the first mesh
 		std::shared_ptr<class_region> region = Meshes[0]->reserve_class_region(size_in_number);
 
@@ -715,7 +716,7 @@ public:
 		const aiScene* scene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_CalcTangentSpace);
 		if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
 		{
-			std::cout << "ERROR::ASSIMP::" << importer.GetErrorString() << std::endl;
+			LOG_ERROR("Assimp error: %s", importer.GetErrorString());
 		}
 		else
 		{

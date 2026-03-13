@@ -264,7 +264,7 @@ int main()
 	Event_receiver_shared mouse_receiver = make_receiver([](const Event& e)
 		{
 			const auto& mouse = dynamic_cast<const Mouse_move_event&>(e);
-			printf("Mouse moved: %.2f, %.2f\n", mouse.x, mouse.y);
+			LOG_INFO("Mouse moved: " + std::to_string(mouse.x) + ", " + std::to_string(mouse.y));
 			const_cast<Mouse_move_event&>(mouse).is_alive = false; // consume it
 		});
 
@@ -274,7 +274,7 @@ int main()
 	Event_receiver_shared key_receiver = make_receiver([](const Event& e)
 		{
 			const auto& key = dynamic_cast<const Key_event&>(e);
-			printf("Key pressed: %d\n", key.key_code);
+			LOG_INFO("Key pressed: " + std::to_string(key.key_code));
 			const_cast<Key_event&>(key).is_alive = false;
 		});
 
@@ -314,7 +314,7 @@ int main()
 			x = 0;
 			z = glfwGetTime();
 			fps_text = "FPS: " + std::to_string(y);
-			printf("Draw calls per second : %d\n",draw_call_count);
+			LOG_INFO("FPS: " + std::to_string(y) + " Draw calls per second : " + std::to_string(draw_call_count));
 			draw_call_count = 0;
 
 			manager.tick("input");

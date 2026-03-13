@@ -39,6 +39,7 @@ public:
 	{
 		if(!tex_coord.empty() && tex_coord.size() != points.size())
 		{
+			LOG_FATAL("Quad_renderer: Recived point and tex_coords is not the same size");
 			throw std::runtime_error("Quad_renderer: Recived point and tex_coords is not the same size");
 		}
 		std::vector<vertex_data> data;
@@ -48,6 +49,7 @@ public:
 
 			if(points[i].size() != 3)
 			{
+				LOG_FATAL("Quad_renderer: Recived points is not expeted shape");
 				throw std::runtime_error("Quad_renderer: Recived points is not expeted shape");
 			}
 			float tex_coord_temp[2] = { 0,0 };
@@ -56,6 +58,7 @@ public:
 			{
 				if(tex_coord[i].size() != 2)
 				{
+					LOG_FATAL("Quad_renderer: Recived tex_coords is not expeted shape");
 					throw std::runtime_error("Quad_renderer: Recived tex_coords is not expeted shape");
 				}
 				else

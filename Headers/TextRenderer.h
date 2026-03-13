@@ -80,7 +80,7 @@ public:
 		std::ifstream file(char_set_path); // Open the file
 		if (!file.is_open())
 		{
-			std::cerr << "Failed to open file\n";
+			LOG_FATAL("Could not open character set file");
 			throw std::runtime_error("Could not open character set file");
 		}
 
@@ -92,7 +92,7 @@ public:
 
 			if (ascii_code == -1)
 			{
-				std::cerr << "error on line: " << x;
+				LOG_ERROR(std::string("error on line: ") + std::to_string(x));
 				throw std::runtime_error("Invalid line format");
 			}
 			char_pos[ascii_code] = {(float)(x * char_width) / width, (float)(y * char_height) / height};

@@ -45,8 +45,8 @@ private:
                         if(immediate_event->timing == Event_timing::Queued)
                         {
                             event_queue.push(std::move(immediate_event));
-                            printf("The_event_manager - Queued event in immediate? is this intentional?\n"
-                                       "moved it into que!");
+                            LOG_WARNING("The_event_manager - Queued event in immediate? is this intentional?\n"
+								"moved it into que!");
                         }
                         else if (immediate_event->timing == Event_timing::Immediate)
                         {
@@ -57,6 +57,7 @@ private:
                         }
                         else
                         {
+                            LOG_FATAL(std::string("The_event_manager - Some unknown timing type :") + std::to_string((int)immediate_event->timing));
                             throw std::runtime_error("The_event_manager - Some unknown timing type :" + std::to_string((int)immediate_event->timing));
                         }
 
@@ -74,8 +75,8 @@ private:
 
                             if(event->timing == Event_timing::Immediate)
                             {
-                                printf("The_event_manager - Immediate event in queue? is this intentional?\n"
-                                       "turned it into Queued!");
+                                LOG_WARNING("The_event_manager - Immediate event in queue? is this intentional?\n"
+									"turned it into Queued!");
                                 event->timing = Event_timing::Queued;
                             }
 
@@ -87,6 +88,7 @@ private:
                             }
                             else
                             {
+                                LOG_FATAL(std::string("The_event_manager - Some unknown timing type :") + std::to_string((int)event->timing));
                                 throw std::runtime_error("The_event_manager - Some unknown timing type :" + std::to_string((int)event->timing));
                             }
                         }
@@ -107,12 +109,13 @@ private:
                 }
                 else
                 {
+                    LOG_FATAL("The_event_manager - A targeted event has no target receiver!");
                     throw std::runtime_error("The_event_manager - A targeted event has no target receiver!");
                 }
                 if (event->is_alive)
                 {
-                    printf("The_event_manager - targeted event is not consumed? is this intentional?\n"
-                           "consuming the event!");
+					LOG_WARNING("The_event_manager - targeted event is not consumed? is this intentional?\n"
+						"consuming the event!");
                     event->is_alive = false;
                 }
             }
@@ -134,6 +137,7 @@ private:
                     }
                     else
                     {
+                        LOG_FATAL("The_event_manager - I dont know how can this happen");
                         throw std::runtime_error("The_event_manager - I dont know how can this happen");
                     }
                 }
@@ -152,6 +156,7 @@ private:
             }
             else
             {
+                LOG_FATAL(std::string("The_event_manager - Some unknown scope type :") + std::to_string((int)event->scope));
                 throw std::runtime_error("The_event_manager - Some unknown scope type :" + std::to_string((int)event->scope));
             }
 
@@ -218,7 +223,7 @@ public:
         std::lock_guard<std::mutex> lock(channels_mutex);
         if (channels.count(name))
         {
-            printf("The_event_manager - - channel '%s' already exists!\n", name.c_str());
+			LOG_ERROR("The_event_manager - - channel '" + name + "' already exists!");
             return false;
         }
         channels[name] = std::make_shared<Channel>();
@@ -231,7 +236,7 @@ public:
         const auto it = channels.find(name);
         if (it == channels.end())
         {
-            printf("The_event_manager - - channel '%s' not exists!\n", name.c_str());
+			LOG_ERROR("The_event_manager - - channel '" + name + "' not exists!");
             return;
         }
         channels.erase(it);
@@ -243,7 +248,7 @@ public:
         const auto it = channels.find(channel_name);
         if (it == channels.end())
         {
-            printf("The_event_manager - subscribe failed, channel '%s' not found!\n", channel_name.c_str());
+			LOG_ERROR("The_event_manager - subscribe failed, channel '" + channel_name + "' not found!");
             return;
         }
         it->second->subscribe(event_type, receiver);
@@ -255,7 +260,7 @@ public:
         const auto it = channels.find(channel_name);
         if (it == channels.end())
         {
-            printf("The_event_manager - throw_event failed, channel '%s' not found!\n", channel_name.c_str());
+			LOG_ERROR("The_event_manager - throw_event failed, channel '" + channel_name + "' not found!");
             return;
         }
         it->second->throw_event(std::move(event));
@@ -267,7 +272,7 @@ public:
         const auto it = channels.find(channel_name);
         if (it == channels.end())
         {
-            printf("The_event_manager - tick failed, channel '%s' not found!\n", channel_name.c_str());
+			LOG_ERROR("The_event_manager - tick failed, channel '" + channel_name + "' not found!");
             return;
         }
         it->second->tick();
@@ -290,7 +295,7 @@ public:
         const auto upstream_it = channels.find(upstream_name);
         if (upstream_it == channels.end())
         {
-            printf("The_event_manager - connect failed, upstream '%s' not found!\n", upstream_name.c_str());
+			LOG_ERROR("The_event_manager - connect failed, upstream '" + upstream_name + "' not found!");
             return false;
         }
 

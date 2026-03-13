@@ -24,6 +24,8 @@
 #include <stack>
 #include <functional>
 
+#include "Logger.h"
+
 #include <mutex>
 #include <condition_variable>
 #include <thread>
@@ -146,7 +148,7 @@ void checkGLError(const char* location)
 	GLenum error;
 	while ((error = glGetError()) != GL_NO_ERROR)
 	{
-		printf("OpenGL Error at %s : %s \n", location, getGLErrorString(error));
+		LOG_ERROR("OpenGL Error at %s : %s", location, getGLErrorString(error));
 	}
 }
 
