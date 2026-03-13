@@ -15,13 +15,15 @@ enum class LogLevel {
 
 class Logger {
 	public:
+		bool log_console = true;
 
 		void log(std::string message, LogLevel level, const char* file, int line ){
 			time_t now = time(0);
 			char* dt = ctime(&now);
 			std::string dtStr(dt);
 			dtStr.pop_back();
-			std::cout << getLogLevelColor(level) << dtStr << " [" << getLogLevelString(level) << "] " << "(" << file << ":" << line << ") " << message << "\033[0m" << std::endl;
+			if(log_console)
+				std::cout << getLogLevelColor(level) << dtStr << " [" << getLogLevelString(level) << "] " << "(" << file << ":" << line << ") " << message << "\033[0m" << std::endl;
 			logFile << dtStr << " [" << getLogLevelString(level) << "] " << "(" << file << ":" << line << ") " << message << std::endl;
 		}
 
@@ -45,7 +47,7 @@ class Logger {
 
 		std::ofstream logFile;
 		Logger() {
-			logFile.open("log.txt", std::ios::app);
+			logFile.open("Logs/log.txt", std::ios::app);
 			if (!logFile.is_open()) {
 				std::cerr << "Failed to open log file!" << std::endl;
 			}

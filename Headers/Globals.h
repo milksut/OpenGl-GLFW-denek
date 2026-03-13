@@ -148,7 +148,7 @@ void checkGLError(const char* location)
 	GLenum error;
 	while ((error = glGetError()) != GL_NO_ERROR)
 	{
-		LOG_ERROR("OpenGL Error at %s : %s", location, getGLErrorString(error));
+		LOG_ERROR(std::string("OpenGL Error at ") + location + std::string(" : ") + getGLErrorString(error));
 	}
 }
 
@@ -306,7 +306,7 @@ namespace Event_management
 	{
 		Null,
 		Mouse_moved, Mouse_pressed, Mouse_released,
-		Key_pressed, Key_released,
+		Key_pressed, Key_hold, Key_released,
 	};
 
 	enum class Event_timing { Immediate, Queued };

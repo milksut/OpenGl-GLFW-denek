@@ -13,6 +13,9 @@ external/
 #Visual Studio 
 .vs/
 
+#Logs
+Logs/
+
 # Compiled binaries
 *.o
 *.a

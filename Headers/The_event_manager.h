@@ -6,7 +6,7 @@
 
 using namespace Event_management;
 
-class event_manager
+class Event_manager
 {
 private:
     class Channel

@@ -716,7 +716,7 @@ public:
 		const aiScene* scene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_CalcTangentSpace);
 		if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
 		{
-			LOG_ERROR("Assimp error: %s", importer.GetErrorString());
+			LOG_ERROR(std::string("Assimp error: ") + importer.GetErrorString());
 		}
 		else
 		{

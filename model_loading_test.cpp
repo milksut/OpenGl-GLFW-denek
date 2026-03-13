@@ -6,7 +6,7 @@
 #include "game_object_basic_model.h"
 
 #include "The_event_manager.h"
-#include "Events/Basic_event_test.h"
+#include "Input_Manager.h"
 
 
 
@@ -17,11 +17,9 @@ const bool enable_vSync = false;
 const unsigned int width = 800, height = 600;
 const float aspect_ratio = (float)width / (float)height;
 
-float mouse_lastX = width / 2, mouse_lastY = height / 2;
 
-const float mouse_sensitivity = 0.3f;
-
-event_manager manager;
+Event_manager manager;
+Input_Manager* input_manager;
 
 camera_test camera(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f));
 
@@ -87,7 +85,6 @@ void processInput(GLFWwindow* window, float camera_speed, camera_test& camera)
 	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
 	{
 		changes[0] = true; // front change
-		manager.throw_event("input", std::make_unique<Key_event>(GLFW_KEY_W));
 	}
 
 	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
@@ -141,19 +138,6 @@ void processInput(GLFWwindow* window, float camera_speed, camera_test& camera)
 		changes[4], changes[5]);
 }
 
-void mouse_callback(GLFWwindow* window, double x_pos, double y_pos)
-{
-	const float xoffset = (x_pos - mouse_lastX) * mouse_sensitivity;
-	const float yoffset = (y_pos - mouse_lastY) * mouse_sensitivity;
-
-	mouse_lastX = x_pos;
-	mouse_lastY = y_pos;
-
-	camera.process_mouse_movement(xoffset, yoffset, mouse_sensitivity);
-
-	manager.throw_event("input", std::make_unique<Mouse_move_event>(x_pos, y_pos));
-}
-
 int main()
 {
 	GLFWwindow* window = init_window(width, height, "Shader Tester");
@@ -180,7 +164,6 @@ int main()
 	printer->push_deleted_colors();
 
 	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
-	glfwSetCursorPosCallback(window, mouse_callback);
 
 	Shader shader("Shaders/Vertex_shaders/Loaded_model_vertex.vert",
 		"Shaders/Fragment_shaders/Loaded_model_fragment.frag");
@@ -257,29 +240,33 @@ int main()
 	checkGLError("After loading light");
 
 	//-------------------------------------------------------------------------------------------------------------
-
-	manager.create_channel("input");
+	input_manager = new Input_Manager(manager,window,width,height);
 
 	// subscriber that prints mouse movement
 	Event_receiver_shared mouse_receiver = make_receiver([](const Event& e)
+	{
+		if (e.type == Event_type::Mouse_moved)
 		{
 			const auto& mouse = dynamic_cast<const Mouse_move_event&>(e);
-			LOG_INFO("Mouse moved: " + std::to_string(mouse.x) + ", " + std::to_string(mouse.y));
+			LOG_INFO("Mouse moved: " + std::to_string(mouse.mouse_x_offset) + ", " + std::to_string(mouse.mouse_y_offset));
 			const_cast<Mouse_move_event&>(mouse).is_alive = false; // consume it
-		});
+		}
+	});
 
-	manager.subscribe("input", Event_type::Mouse_moved, mouse_receiver);
+	//input_manager->event_manager.subscribe("Mouse_input", Event_type::Mouse_moved, mouse_receiver);
 
-	// subscriber that prints key presses
-	Event_receiver_shared key_receiver = make_receiver([](const Event& e)
+	Event_receiver_shared camera_trigger = make_receiver([](const Event& e)
+	{
+		if (e.type == Event_type::Mouse_moved)
 		{
-			const auto& key = dynamic_cast<const Key_event&>(e);
-			LOG_INFO("Key pressed: " + std::to_string(key.key_code));
-			const_cast<Key_event&>(key).is_alive = false;
-		});
+			const auto& mouse = dynamic_cast<const Mouse_move_event&>(e);
+			camera.process_mouse_movement(mouse.mouse_x_offset, mouse.mouse_y_offset,
+				input_manager->mouse_sensitivity);
+			const_cast<Mouse_move_event&>(mouse).is_alive = false;
+		}
+	});
 
-	manager.subscribe("input", Event_type::Key_pressed, key_receiver);
-
+	input_manager->event_manager.subscribe("Mouse_input", Event_type::Mouse_moved, camera_trigger);
 	//-------------------------------------------------------------------------------------------------------------
 
 	glEnable(GL_DEPTH_TEST); // Enable depth testing for 3D rendering
@@ -316,8 +303,6 @@ int main()
 			fps_text = "FPS: " + std::to_string(y);
 			LOG_INFO("FPS: " + std::to_string(y) + " Draw calls per second : " + std::to_string(draw_call_count));
 			draw_call_count = 0;
-
-			manager.tick("input");
 		}
 		printer->render_text(fps_text, -1, 0.9, 2.0f);
 		checkGLError("After drawing fps");
