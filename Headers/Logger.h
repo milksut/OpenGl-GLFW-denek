@@ -14,55 +14,64 @@ enum class LogLevel {
 };
 
 class Logger {
-	public:
-		bool log_console = true;
+public:
 
-		void log(std::string message, LogLevel level, const char* file, int line ){
-			time_t now = time(0);
-			char* dt = ctime(&now);
-			std::string dtStr(dt);
-			dtStr.pop_back();
-			if(log_console)
-				std::cout << getLogLevelColor(level) << dtStr << " [" << getLogLevelString(level) << "] " << "(" << file << ":" << line << ") " << message << "\033[0m" << std::endl;
-			logFile << dtStr << " [" << getLogLevelString(level) << "] " << "(" << file << ":" << line << ") " << message << std::endl;
+	void log(std::string message, LogLevel level, const char* file, int line) {
+		time_t now = time(0);
+		char* dt = ctime(&now);
+		std::string dtStr(dt);
+		dtStr.pop_back();
+		std::cout << getLogLevelColor(level) << dtStr << " [" << getLogLevelString(level) << "] " << "(" << file << ":" << line << ") " << message << "\033[0m" << std::endl;
+		logFile << dtStr << " [" << getLogLevelString(level) << "] " << "(" << file << ":" << line << ") " << message << std::endl;
+	}
+
+	static Logger& getInstance() {
+		static Logger instance;
+		return instance;
+	}
+
+private:
+
+	std::string getLogLevelString(LogLevel level) {
+		switch (level) {
+		case LogLevel::INFO: return "INFO";
+		case LogLevel::WARNING: return "WARNING";
+		case LogLevel::ERROR: return "ERROR";
+		case LogLevel::DEBUG: return "DEBUG";
+		case LogLevel::FATAL: return "FATAL";
+		default: return "UNKNOWN";
 		}
+	}
 
-		static Logger& getInstance() {
-			static Logger instance;
-			return instance;
+	std::ofstream logFile;
+	Logger() {
+		time_t now = time(0);
+		tm* ltm = localtime(&now);
+
+		std::string filename = "log_" +
+			std::to_string(1900 + ltm->tm_year) + "-" +
+			std::to_string(1 + ltm->tm_mon) + "-" +
+			std::to_string(ltm->tm_mday) + "_" +
+			std::to_string(ltm->tm_hour) + "-" +
+			std::to_string(ltm->tm_min) + "-" +
+			std::to_string(ltm->tm_sec) + ".txt";
+
+		logFile.open(filename);
+		if (!logFile.is_open()) {
+			std::cerr << "Failed to open log file!" << std::endl;
 		}
+	}
 
-	private:
-
-		std::string getLogLevelString(LogLevel level) {
-			switch (level) {
-				case LogLevel::INFO: return "INFO";
-				case LogLevel::WARNING: return "WARNING";
-				case LogLevel::ERROR: return "ERROR";
-				case LogLevel::DEBUG: return "DEBUG";
-				case LogLevel::FATAL: return "FATAL";
-				default: return "UNKNOWN";
-			}
+	std::string getLogLevelColor(LogLevel level) {
+		switch (level) {
+		case LogLevel::INFO: return "\033[32m"; // Green
+		case LogLevel::WARNING: return "\033[33m"; // Yellow
+		case LogLevel::ERROR: return "\033[31m"; // Red
+		case LogLevel::DEBUG: return "\033[34m"; // Blue
+		case LogLevel::FATAL: return "\033[35m"; // Magenta
+		default: return "\033[0m"; // Reset
 		}
-
-		std::ofstream logFile;
-		Logger() {
-			logFile.open("Logs/log.txt", std::ios::app);
-			if (!logFile.is_open()) {
-				std::cerr << "Failed to open log file!" << std::endl;
-			}
-		}
-
-		std::string getLogLevelColor(LogLevel level) {
-			switch (level) {
-				case LogLevel::INFO: return "\033[32m"; // Green
-				case LogLevel::WARNING: return "\033[33m"; // Yellow
-				case LogLevel::ERROR: return "\033[31m"; // Red
-				case LogLevel::DEBUG: return "\033[34m"; // Blue
-				case LogLevel::FATAL: return "\033[35m"; // Magenta
-				default: return "\033[0m"; // Reset
-			}
-		}
+	}
 
 };
 
