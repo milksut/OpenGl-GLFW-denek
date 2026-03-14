@@ -8,8 +8,6 @@
 
 #define OPENGL_VERSION_MAJOR 3
 #define OPENGL_VERSION_MINOR 3
-
-
 //end of defines---------------------------------------------------------------------------------
 
 
@@ -24,12 +22,29 @@
 #include <stack>
 #include <functional>
 
-#include "Logger.h"
+#include <iostream>
+#include <ctime>
+#include <fstream>
+#include <cstdarg>
 
 #include <mutex>
 #include <condition_variable>
 #include <thread>
 #include <queue>
+
+
+#ifdef _WIN32
+#include <direct.h>
+#define MKDIR(path) _mkdir(path)
+#define STAT_STRUCT _stat
+#define STAT_FUNC   _stat
+
+#else
+#include <unistd.h>
+#define MKDIR(path) mkdir(path, 0755)
+#define STAT_STRUCT stat
+#define STAT_FUNC   stat
+#endif
 //end of includes---------------------------------------------------------------------------------
 
 
@@ -64,7 +79,7 @@
 
 //Global variables-------------------------------------------------------------------------------
 	unsigned int draw_call_count = 0; //to track how many draw calls are made per frame
-
+	unsigned int tick_count = 0; //to track how many ticks are made per second
 //end of global variables------------------------------------------------------------------------
 
 
@@ -126,32 +141,15 @@ struct material_properties
 
 
 //Functions--------------------------------------------------------------------------------------
-
-#define GL_ERROR_CASE(err) case err: return #err
-
-const char* getGLErrorString(GLenum error)
-{
-	switch (error)
-	{
-		GL_ERROR_CASE(GL_NO_ERROR);
-		GL_ERROR_CASE(GL_INVALID_ENUM);
-		GL_ERROR_CASE(GL_INVALID_VALUE);
-		GL_ERROR_CASE(GL_INVALID_OPERATION);
-		GL_ERROR_CASE(GL_OUT_OF_MEMORY);
-		GL_ERROR_CASE(GL_INVALID_FRAMEBUFFER_OPERATION);
-	default: return "UNKNOWN_ERROR";
-	}
+bool folderExists(const std::string& path) {
+	struct STAT_STRUCT info;
+	if (STAT_FUNC(path.c_str(), &info) != 0) return false;
+	return (info.st_mode & S_IFDIR) != 0;
 }
 
-void checkGLError(const char* location)
-{
-	GLenum error;
-	while ((error = glGetError()) != GL_NO_ERROR)
-	{
-		LOG_ERROR("OpenGL Error at %s : %s", location, getGLErrorString(error));
-	}
+bool createFolder(const std::string& path) {
+	return MKDIR(path.c_str()) == 0;
 }
-
 //end of functions-------------------------------------------------------------------------------
 
 
@@ -366,5 +364,131 @@ namespace Event_management
 
 
 
+}
+
+namespace Logger
+{
+	enum class LogLevel
+	{
+		INFO,
+		WARNING,
+		ERROR,
+		DEBUG,
+		FATAL
+	};
+
+	class Logger_class {
+	public:
+		LogLevel console_log_level = LogLevel::DEBUG;
+		void log(LogLevel level, const char* file, int line, const char* format, ...) {
+			char buffer[1024];
+			va_list args;
+			va_start(args, format);
+			vsnprintf(buffer, sizeof(buffer), format, args);
+			va_end(args);
+			time_t now = time(0);
+			char* dt = ctime(&now);
+			std::string dtStr(dt);
+			dtStr.pop_back();
+			if (level >= console_log_level)
+			{
+				std::cout << getLogLevelColor(level) << dtStr << " [" << getLogLevelString(level) << "] " << "(" << file << ":" << line << ") " << buffer << "\033[0m" << std::endl;
+			}
+			logFile << dtStr << " [" << getLogLevelString(level) << "] " << "(" << file << ":" << line << ") " << buffer << std::endl;
+		}
+
+		static Logger_class& getInstance() {
+			static Logger_class instance;
+			return instance;
+		}
+
+	private:
+
+		std::string getLogLevelString(LogLevel level) {
+			switch (level) {
+			case LogLevel::INFO: return "INFO";
+			case LogLevel::WARNING: return "WARNING";
+			case LogLevel::ERROR: return "ERROR";
+			case LogLevel::DEBUG: return "DEBUG";
+			case LogLevel::FATAL: return "FATAL";
+			default: return "UNKNOWN";
+			}
+		}
+
+		std::ofstream logFile;
+		Logger_class() {
+
+			if(!folderExists("Logs"))
+			{
+				if(!createFolder("Logs"))
+				{
+					std::cerr << "Failed to create Logs folder!" << std::endl;
+					return;
+				}
+				else
+				{
+					std::cout << "Logs folder created successfully." << std::endl;
+				}
+			}
+
+			time_t now = time(0);
+			tm* ltm = localtime(&now);
+
+			std::string filename = "Logs/log_" +
+				std::to_string(1900 + ltm->tm_year) + "-" +
+				std::to_string(1 + ltm->tm_mon) + "-" +
+				std::to_string(ltm->tm_mday) + "_" +
+				std::to_string(ltm->tm_hour) + "-" +
+				std::to_string(ltm->tm_min) + "-" +
+				std::to_string(ltm->tm_sec) + ".txt";
+
+			logFile.open(filename);
+			if (!logFile.is_open()) {
+				std::cerr << "Failed to open log file!" << std::endl;
+			}
+		}
+
+		std::string getLogLevelColor(LogLevel level) {
+			switch (level) {
+			case LogLevel::INFO: return "\033[32m"; // Green
+			case LogLevel::WARNING: return "\033[33m"; // Yellow
+			case LogLevel::ERROR: return "\033[31m"; // Red
+			case LogLevel::DEBUG: return "\033[34m"; // Blue
+			case LogLevel::FATAL: return "\033[35m"; // Magenta
+			default: return "\033[0m"; // Reset
+			}
+		}
+
+	};
+
+	#define LOG_ERROR(format, ...) Logger::Logger_class::getInstance().log(Logger::LogLevel::ERROR, __FILE__, __LINE__, format, ##__VA_ARGS__)
+	#define LOG_WARNING(format, ...) Logger::Logger_class::getInstance().log(Logger::LogLevel::WARNING, __FILE__, __LINE__, format, ##__VA_ARGS__)
+	#define LOG_INFO(format, ...) Logger::Logger_class::getInstance().log(Logger::LogLevel::INFO, __FILE__, __LINE__, format, ##__VA_ARGS__)
+	#define LOG_DEBUG(format, ...) Logger::Logger_class::getInstance().log(Logger::LogLevel::DEBUG, __FILE__, __LINE__, format, ##__VA_ARGS__)
+	#define LOG_FATAL(format, ...) Logger::Logger_class::getInstance().log(Logger::LogLevel::FATAL, __FILE__, __LINE__, format, ##__VA_ARGS__)
+
+	#define GL_ERROR_CASE(err) case err: return #err
+	const char* getGLErrorString(GLenum error)
+	{
+		switch (error)
+		{
+			GL_ERROR_CASE(GL_NO_ERROR);
+			GL_ERROR_CASE(GL_INVALID_ENUM);
+			GL_ERROR_CASE(GL_INVALID_VALUE);
+			GL_ERROR_CASE(GL_INVALID_OPERATION);
+			GL_ERROR_CASE(GL_OUT_OF_MEMORY);
+			GL_ERROR_CASE(GL_INVALID_FRAMEBUFFER_OPERATION);
+		default: return "UNKNOWN_ERROR";
+		}
+	}
+
+	void checkGLError(const char* location)
+	{
+		GLenum error;
+		while ((error = glGetError()) != GL_NO_ERROR)
+		{
+			LOG_ERROR("OpenGL Error at %s : %s", location, getGLErrorString(error));
+		}
+	}
 }
 //end of namespaces-------------------------------------------------------------------------------

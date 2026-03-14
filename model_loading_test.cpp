@@ -199,7 +199,7 @@ int main()
 	}
 		
 	backpack.load_instance_buffer((float*)model_matrices_grid.data(), model_matrices_grid.size(), 3, grid_region);
-	checkGLError("After loading models");
+	Logger::checkGLError("After loading models");
 
 	std::vector<glm::mat3> transpose_inverse_model_matrices_grid;
 	transpose_inverse_model_matrices_grid.reserve(grid_amount * grid_amount);
@@ -214,13 +214,13 @@ int main()
 	}
 
 	backpack.load_instance_buffer((float*)transpose_inverse_model_matrices_grid.data(), transpose_inverse_model_matrices_grid.size(), 7, grid_region);
-	checkGLError("After loading transpose_inverse");
+	Logger::checkGLError("After loading transpose_inverse");
 
 	Light sun = {false, glm::vec3(0.0), glm::vec3(0.0,-1.0,0.0), glm::vec3(1.0,1.0,1.0), glm::vec3(5.0,5.0,5.0), glm::vec3(0.5f,0.5f,0.5f),0,0,0,0,0};
 	
 	shader.use();
 	shader.setInt("num_of_lights", 1);
-	checkGLError("After changing light amount");
+	Logger::checkGLError("After changing light amount");
 
 	shader.setBool("lights[0].has_a_source", sun.has_a_source);
 	shader.setVec3("lights[0].light_pos", sun.light_pos);
@@ -237,7 +237,7 @@ int main()
 	shader.setFloat("lights[0].linear", sun.linear);
 	shader.setFloat("lights[0].quadratic", sun.quadratic);
 
-	checkGLError("After loading light");
+	Logger::checkGLError("After loading light");
 
 	//-------------------------------------------------------------------------------------------------------------
 	input_manager = new Input_Manager(manager,window,width,height);
@@ -292,7 +292,7 @@ int main()
 
 
 		backpack.draw(shader, grid_region, grid_amount * grid_amount);
-		checkGLError("After drawing grid backpack");
+		Logger::checkGLError("After drawing grid backpack");
 
 		x++;
 		if (glfwGetTime() - z >= 1.0f)
@@ -305,7 +305,7 @@ int main()
 			draw_call_count = 0;
 		}
 		printer->render_text(fps_text, -1, 0.9, 2.0f);
-		checkGLError("After drawing fps");
+		Logger::checkGLError("After drawing fps");
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();
