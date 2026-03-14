@@ -4,6 +4,7 @@
 #include <iostream>
 #include <ctime>
 #include <fstream>
+#include <cstdarg>
 
 enum class LogLevel {
 	INFO,
@@ -16,13 +17,18 @@ enum class LogLevel {
 class Logger {
 public:
 
-	void log(std::string message, LogLevel level, const char* file, int line) {
+	void log(LogLevel level, const char* file, int line, const char* format, ...) {
+		char buffer[1024];
+		va_list args;
+		va_start(args, format);
+		vsnprintf(buffer, sizeof(buffer), format, args);
+		va_end(args);
 		time_t now = time(0);
 		char* dt = ctime(&now);
 		std::string dtStr(dt);
 		dtStr.pop_back();
-		std::cout << getLogLevelColor(level) << dtStr << " [" << getLogLevelString(level) << "] " << "(" << file << ":" << line << ") " << message << "\033[0m" << std::endl;
-		logFile << dtStr << " [" << getLogLevelString(level) << "] " << "(" << file << ":" << line << ") " << message << std::endl;
+		std::cout << getLogLevelColor(level) << dtStr << " [" << getLogLevelString(level) << "] " << "(" << file << ":" << line << ") " << buffer << "\033[0m" << std::endl;
+		logFile << dtStr << " [" << getLogLevelString(level) << "] " << "(" << file << ":" << line << ") " << buffer << std::endl;
 	}
 
 	static Logger& getInstance() {
