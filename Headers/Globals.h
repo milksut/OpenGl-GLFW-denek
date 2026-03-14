@@ -148,7 +148,7 @@ void checkGLError(const char* location)
 	GLenum error;
 	while ((error = glGetError()) != GL_NO_ERROR)
 	{
-		LOG_ERROR(std::string("OpenGL Error at ") + location + std::string(" : ") + getGLErrorString(error));
+		LOG_ERROR("OpenGL Error at %s : %s", location, getGLErrorString(error));
 	}
 }
 

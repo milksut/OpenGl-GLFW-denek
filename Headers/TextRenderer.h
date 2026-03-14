@@ -92,7 +92,7 @@ public:
 
 			if (ascii_code == -1)
 			{
-				LOG_ERROR(std::string("error on line: ") + std::to_string(x));
+				LOG_ERROR("error on line: %d", x);
 				throw std::runtime_error("Invalid line format");
 			}
 			char_pos[ascii_code] = {(float)(x * char_width) / width, (float)(y * char_height) / height};

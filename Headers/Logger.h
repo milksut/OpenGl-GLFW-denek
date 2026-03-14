@@ -81,8 +81,8 @@ private:
 
 };
 
-#define LOG_ERROR(message) Logger::getInstance().log(message, LogLevel::ERROR, __FILE__, __LINE__)
-#define LOG_WARNING(message) Logger::getInstance().log(message, LogLevel::WARNING, __FILE__, __LINE__)
-#define LOG_INFO(message) Logger::getInstance().log(message, LogLevel::INFO, __FILE__, __LINE__)
-#define LOG_DEBUG(message) Logger::getInstance().log(message, LogLevel::DEBUG, __FILE__, __LINE__)
-#define LOG_FATAL(message) Logger::getInstance().log(message, LogLevel::FATAL, __FILE__, __LINE__)
+#define LOG_ERROR(format, ...) Logger::getInstance().log(LogLevel::ERROR, __FILE__, __LINE__, format, ##__VA_ARGS__)
+#define LOG_WARNING(format, ...) Logger::getInstance().log(LogLevel::WARNING, __FILE__, __LINE__, format, ##__VA_ARGS__)
+#define LOG_INFO(format, ...) Logger::getInstance().log(LogLevel::INFO, __FILE__, __LINE__, format, ##__VA_ARGS__)
+#define LOG_DEBUG(format, ...) Logger::getInstance().log(LogLevel::DEBUG, __FILE__, __LINE__, format, ##__VA_ARGS__)
+#define LOG_FATAL(format, ...) Logger::getInstance().log(LogLevel::FATAL, __FILE__, __LINE__, format, ##__VA_ARGS__)

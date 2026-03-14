@@ -248,7 +248,7 @@ int main()
 		if (e.type == Event_type::Mouse_moved)
 		{
 			const auto& mouse = dynamic_cast<const Mouse_move_event&>(e);
-			LOG_INFO("Mouse moved: " + std::to_string(mouse.mouse_x_offset) + ", " + std::to_string(mouse.mouse_y_offset));
+			LOG_INFO("Mouse moved: %f, %f", mouse.mouse_x_offset, mouse.mouse_y_offset);
 			const_cast<Mouse_move_event&>(mouse).is_alive = false; // consume it
 		}
 	});
@@ -301,7 +301,7 @@ int main()
 			x = 0;
 			z = glfwGetTime();
 			fps_text = "FPS: " + std::to_string(y);
-			LOG_INFO("FPS: " + std::to_string(y) + " Draw calls per second : " + std::to_string(draw_call_count));
+			LOG_INFO("FPS: %d Draw calls per second: %d", y, draw_call_count);
 			draw_call_count = 0;
 		}
 		printer->render_text(fps_text, -1, 0.9, 2.0f);

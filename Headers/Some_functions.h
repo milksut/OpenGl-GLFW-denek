@@ -24,7 +24,7 @@ unsigned int load_image(const char* image_path, int& width, int& height, int& nr
 	stbi_set_flip_vertically_on_load(flip_vertically);
 	// load and generate the texture
 	unsigned char* data = stbi_load(image_path, &width, &height, &nrChannels, 0);
-	LOG_INFO(std::string("Image loaded: ") + image_path + " width: " + std::to_string(width) + " height: " + std::to_string(height) + " channels: " + std::to_string(nrChannels));
+	LOG_INFO("Image loaded: %s width: %d height: %d channels: %d", image_path, width, height, nrChannels);
 	if (data)
 	{
 		//set the pixel storage mode "packing" byte alignment(default is 4 bytes)

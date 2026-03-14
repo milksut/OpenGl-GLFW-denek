@@ -492,7 +492,7 @@ private:
 			std::shared_ptr<Mesh> temp = process_mesh(mesh, scene, path);
 			parent_mesh.Meshes.push_back(temp);
 			Meshes.push_back(temp);
-			LOG_INFO(std::string("Processed mesh: ") + mesh->mName.C_Str());
+			LOG_INFO("Processed mesh: %s", mesh->mName.C_Str());
 		}
 		//process childs
 		for (unsigned int i = 0; i < node->mNumChildren; i++)
@@ -716,7 +716,7 @@ public:
 		const aiScene* scene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_CalcTangentSpace);
 		if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
 		{
-			LOG_ERROR(std::string("Assimp error: ") + importer.GetErrorString());
+			LOG_ERROR("Assimp error: %s", importer.GetErrorString());
 		}
 		else
 		{

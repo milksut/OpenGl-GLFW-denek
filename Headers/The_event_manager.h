@@ -57,7 +57,7 @@ private:
                         }
                         else
                         {
-                            LOG_FATAL(std::string("The_event_manager - Some unknown timing type :") + std::to_string((int)immediate_event->timing));
+                            LOG_FATAL("The_event_manager - Some unknown timing type: %d", (int)immediate_event->timing);
                             throw std::runtime_error("The_event_manager - Some unknown timing type :" + std::to_string((int)immediate_event->timing));
                         }
 
@@ -88,7 +88,7 @@ private:
                             }
                             else
                             {
-                                LOG_FATAL(std::string("The_event_manager - Some unknown timing type :") + std::to_string((int)event->timing));
+                                LOG_FATAL("The_event_manager - Some unknown timing type: %d", (int)event->timing);
                                 throw std::runtime_error("The_event_manager - Some unknown timing type :" + std::to_string((int)event->timing));
                             }
                         }
@@ -156,7 +156,7 @@ private:
             }
             else
             {
-                LOG_FATAL(std::string("The_event_manager - Some unknown scope type :") + std::to_string((int)event->scope));
+                LOG_FATAL("The_event_manager - Some unknown scope type: %d", (int)event->scope);
                 throw std::runtime_error("The_event_manager - Some unknown scope type :" + std::to_string((int)event->scope));
             }
 
@@ -223,7 +223,7 @@ public:
         std::lock_guard<std::mutex> lock(channels_mutex);
         if (channels.count(name))
         {
-			LOG_ERROR("The_event_manager - - channel '" + name + "' already exists!");
+            LOG_ERROR("The_event_manager - channel '%s' already exists!", name.c_str());
             return false;
         }
         channels[name] = std::make_shared<Channel>();
@@ -236,7 +236,7 @@ public:
         const auto it = channels.find(name);
         if (it == channels.end())
         {
-			LOG_ERROR("The_event_manager - - channel '" + name + "' not exists!");
+            LOG_ERROR("The_event_manager - channel '%s' not exists!", name.c_str());
             return;
         }
         channels.erase(it);
@@ -248,7 +248,7 @@ public:
         const auto it = channels.find(channel_name);
         if (it == channels.end())
         {
-			LOG_ERROR("The_event_manager - subscribe failed, channel '" + channel_name + "' not found!");
+            LOG_ERROR("The_event_manager - subscribe failed, channel '%s' not found!", channel_name.c_str());
             return;
         }
         it->second->subscribe(event_type, receiver);
@@ -260,7 +260,7 @@ public:
         const auto it = channels.find(channel_name);
         if (it == channels.end())
         {
-			LOG_ERROR("The_event_manager - throw_event failed, channel '" + channel_name + "' not found!");
+            LOG_ERROR("The_event_manager - throw_event failed, channel '%s' not found!", channel_name.c_str());
             return;
         }
         it->second->throw_event(std::move(event));
@@ -272,7 +272,7 @@ public:
         const auto it = channels.find(channel_name);
         if (it == channels.end())
         {
-			LOG_ERROR("The_event_manager - tick failed, channel '" + channel_name + "' not found!");
+            LOG_ERROR("The_event_manager - tick failed, channel '%s' not found!", channel_name.c_str());
             return;
         }
         it->second->tick();
@@ -295,7 +295,7 @@ public:
         const auto upstream_it = channels.find(upstream_name);
         if (upstream_it == channels.end())
         {
-			LOG_ERROR("The_event_manager - connect failed, upstream '" + upstream_name + "' not found!");
+            LOG_ERROR("The_event_manager - connect failed, upstream '%s' not found!", upstream_name.c_str());
             return false;
         }
 
